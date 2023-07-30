@@ -9,28 +9,53 @@
 #include <thread>
 
 #include "esp_timer_cxx.hpp"
+#include "esp_event_cxx.hpp"
 #include "gpio_cxx.hpp"
 
 // ms s us
 using namespace std::chrono_literals;
 
 /**
- * CXX Main Task
+ * @brief Application main
+ * This Function Will Run With MainTask And When Called app_main() MainTask Ending;
  */
-_Noreturn inline void cpp_main() {
+extern "C" _Noreturn void app_main() {
+    using namespace idf::event;
 
     // Create A Timer For Application
     auto led_fir = idf::GPIO_Output(idf::GPIONum(12));
     auto led_sec = idf::GPIO_Output(idf::GPIONum(13));
     static bool led_fir_status = false;
-    static bool led_sec_status = false;
-    auto timer = std::make_unique<idf::esp_timer::ESPTimer>([&led_fir]() {
-        if (led_fir_status)
-        {
+    // static bool led_sec_status = false;
+
+    ESPEventLoop eventLoop;
+    // ESPEventID(0xE1);
+    auto ledEvent = ESPEvent("led_event", ESPEventID(0xF1));
+
+    auto reg = eventLoop.register_event_timed(
+            ledEvent,
+            [&led_sec](const ESPEvent &event, void *data) {
+
+                std::cout << "received event: " << event.base << "/" << event.id << std::endl;
+                auto status = *reinterpret_cast<bool *>(data);
+                if (status) {
+                    led_sec.set_low();
+                } else {
+                    led_sec.set_high();
+                }
+                std::cout << "led event started" << std::endl;
+            }, 500ms, [](const idf::event::ESPEvent &) {
+                std::cout << "led event timeout..." << std::endl;
+            }
+    );
+
+    auto timer = std::make_unique<idf::esp_timer::ESPTimer>([&]() {
+        if (led_fir_status) {
             led_fir.set_high();
         } else {
             led_fir.set_low();
         }
+
         led_fir_status = !led_fir_status;
 
         std::cout << "Test Timer Output" << std::endl;
@@ -42,28 +67,16 @@ _Noreturn inline void cpp_main() {
 
     while (true) {
 
-        if (led_sec_status)
-        {
-            led_sec.set_high();
-        } else {
-            led_sec.set_low();
-        }
-        led_sec_status = !led_sec_status;
+//        if (led_sec_status)
+//        {
+//            led_sec.set_high();
+//        } else {
+//            led_sec.set_low();
+//        }
+//        led_sec_status = !led_sec_status;
 
+        eventLoop.post_event_data(ledEvent, led_fir_status, 10ms);
         std::cout << "Test out put" << std::endl;
-        std::this_thread::sleep_for(2000ms);
+        std::this_thread::sleep_for(125ms);
     }
-}
-
-extern "C"
-{
-
-/**
- * @brief Application main
- * This Function Will Run With MainTask And When Called app_main() MainTask Ending;
- */
-[[maybe_unused]] void app_main(void) {
-    cpp_main();
-}
-
 }
