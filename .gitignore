@@ -1,2 +1,5 @@
-build
+*build*
 *.old
+*.lock
+managed_components
+*.log
