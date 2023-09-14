@@ -11,6 +11,8 @@
 #include <esp_event_cxx.hpp>
 
 namespace ok_wifi {
+    using namespace std::chrono_literals;
+
     static const char *TAG = "BleProv";
 
     BleProv::BleProv() : thread(), result(ProvStatus::ProvPrepare, ""), serviceName("WaterBox_Device") {
