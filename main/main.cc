@@ -23,52 +23,13 @@
 // ms s us
 using namespace std::chrono_literals;
 
-
 static const char *TAG = "Main";
-
-static void event_handler(void *arg, esp_event_base_t event_base,
-                          int event_id, void *event_data) {
-    if (event_base == WIFI_PROV_EVENT) {
-        switch (event_id) {
-            case WIFI_PROV_START:
-                ESP_LOGI(TAG, "Provisioning started");
-                break;
-            case WIFI_PROV_CRED_RECV: {
-                wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *) event_data;
-                ESP_LOGI(TAG, "Received Wi-Fi credentials"
-                              "\n\tSSID     : %s\n\tPassword : %s",
-                         (const char *) wifi_sta_cfg->ssid,
-                         (const char *) wifi_sta_cfg->password);
-                break;
-            }
-            case WIFI_PROV_CRED_FAIL: {
-                wifi_prov_sta_fail_reason_t *reason = (wifi_prov_sta_fail_reason_t *) event_data;
-                ESP_LOGE(TAG, "Provisioning failed!\n\tReason : %s"
-                              "\n\tPlease reset to factory and retry provisioning",
-                         (*reason == WIFI_PROV_STA_AUTH_ERROR) ?
-                         "Wi-Fi station authentication failed" : "Wi-Fi access-point not found");
-                break;
-            }
-            case WIFI_PROV_CRED_SUCCESS:
-                ESP_LOGI(TAG, "Provisioning successful");
-                break;
-            case WIFI_PROV_END:
-                /* De-initialize manager once provisioning is finished */
-                wifi_prov_mgr_deinit();
-                break;
-            default:
-                break;
-        }
-    }
-}
 
 /**
  * @brief Application main
  * This Function Will Run With MainTask And When Called app_main() MainTask Ending;
  */
 extern "C" _Noreturn void app_main() {
-//    esp_err_t ret;
-
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -86,20 +47,6 @@ extern "C" _Noreturn void app_main() {
 
     /* Initialize Wi-Fi including netif with default config */
     esp_netif_create_default_wifi_sta();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    wifi_prov_mgr_config_t config = {
-            .scheme = wifi_prov_scheme_ble,
-            .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM
-    };
-    wifi_prov_mgr_reset_provisioning();
-
-    ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
-
-    const char *service_name = "WaterBox_BLU";
-    wifi_prov_security_t security = WIFI_PROV_SECURITY_0;
-    ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, nullptr, service_name, nullptr));
 
     auto led = idf::GPIO_Output(idf::GPIONum(13));
     auto led_status = false;
@@ -123,16 +70,19 @@ extern "C" _Noreturn void app_main() {
             std::this_thread::sleep_for(200ms);
         }
     });
-    wifi_prov_mgr_wait();
 
-    bool provisioned = false;
-    wifi_prov_mgr_is_provisioned(&provisioned);
-    if (provisioned) {
-        std::cout << "Prov Wifi Successful!" << std::endl;
-        wifi_prov_mgr_deinit();
-        esp_event_loop_delete_default();
+    auto okWifi = std::make_unique<ok_wifi::OkWifi>();
+    try {
+        okWifi->wait(50);
+    } catch (idf::event::EventException &exception) {
+        ESP_LOGE(TAG, "Error %s", exception.what());
+    }
+
+    auto &res_ = okWifi->getProvResult();
+    if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
+        std::cout << "Completed Prov SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
     } else {
-        std::cout << "Prov Wifi Error!" << std::endl;
+        std::cout << "Error for Prov" << std::endl;
     }
 
     while (true) {
