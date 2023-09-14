@@ -126,7 +126,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1f283c05-afe6-4743-a30d-706cf7aaa110" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/main/BleProv.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/main/BleProv.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main/OkWifi.cc" beforeDir="false" afterPath="$PROJECT_DIR$/main/OkWifi.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main/OkWifi.h" beforeDir="false" afterPath="$PROJECT_DIR$/main/OkWifi.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main/main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/main/main.cc" afterDir="false" />
@@ -170,6 +173,9 @@
   &quot;associatedIndex&quot;: 5
 }</component>
   <component name="ProjectId" id="2VMjhzyRzVlbqGe9cGV5fOBcwMU" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -846,7 +852,7 @@
       <option name="presentableId" value="Default" />
       <updated>1694652969696</updated>
       <workItem from="1694652973781" duration="6884000" />
-      <workItem from="1694671977109" duration="3295000" />
+      <workItem from="1694671977109" duration="3965000" />
     </task>
     <servers />
   </component>

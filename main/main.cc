@@ -18,7 +18,7 @@
 #include "gpio_cxx.hpp"
 
 #include "wifi_provisioning/manager.h"
-#include "OkWifi.h"
+#include "BleProv.h"
 
 // ms s us
 using namespace std::chrono_literals;
@@ -71,7 +71,7 @@ extern "C" _Noreturn void app_main() {
         }
     });
 
-    auto okWifi = std::make_unique<ok_wifi::OkWifi>();
+    auto okWifi = std::make_unique<ok_wifi::BleProv>();
     try {
         okWifi->wait(50);
     } catch (idf::event::EventException &exception) {
