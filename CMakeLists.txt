@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(PROJECT_NAME OkWifi)
-set(PROJECTNAME OkWifi)
 
 # CXX 17 Support
 set(CMAKE_CXX_STANDARD 17)

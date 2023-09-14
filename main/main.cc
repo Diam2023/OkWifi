@@ -18,6 +18,7 @@
 #include "gpio_cxx.hpp"
 
 #include "wifi_provisioning/manager.h"
+#include "OkWifi.h"
 
 // ms s us
 using namespace std::chrono_literals;
@@ -69,19 +70,11 @@ extern "C" _Noreturn void app_main() {
 //    esp_err_t ret;
 
     // Initialize NVS
-//    ret = nvs_flash_init();
-//    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-//        ESP_ERROR_CHECK(nvs_flash_erase());
-//        ret = nvs_flash_init();
-//    }
-//    ESP_ERROR_CHECK(ret);
-
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         /* NVS partition was truncated
          * and needs to be erased */
         ESP_ERROR_CHECK(nvs_flash_erase());
-
         /* Retry nvs_flash_init */
         ESP_ERROR_CHECK(nvs_flash_init());
     }
@@ -124,11 +117,10 @@ extern "C" _Noreturn void app_main() {
             }
             led_status = !led_status;
 
-            if (now_status == Status::Waiting) {
-                std::this_thread::sleep_for(200ms);
-            } else {
-                std::this_thread::sleep_for(1s);
+            if (now_status != Status::Waiting) {
+                std::this_thread::sleep_for(800ms);
             }
+            std::this_thread::sleep_for(200ms);
         }
     });
     wifi_prov_mgr_wait();
@@ -141,7 +133,6 @@ extern "C" _Noreturn void app_main() {
         esp_event_loop_delete_default();
     } else {
         std::cout << "Prov Wifi Error!" << std::endl;
-
     }
 
     while (true) {

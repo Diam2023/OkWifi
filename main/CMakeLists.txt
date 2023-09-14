@@ -1,11 +1,6 @@
-# Edit following two lines to set component requirements (see docs)
-#set(COMPONENT_REQUIRES )
-#set(COMPONENT_PRIV_REQUIRES )
+file(GLOB COMPONENT_SRCS ./*.cc)
 
-
-
-
-set(COMPONENT_SRCS "main.cc")
-set(COMPONENT_ADD_INCLUDEDIRS "")
+#set(COMPONENT_SRCS SRCS)
+set(COMPONENT_ADD_INCLUDEDIRS ".")
 
 register_component()
