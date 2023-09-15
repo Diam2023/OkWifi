@@ -16,24 +16,24 @@ namespace ok_wifi {
     static const char *TAG = "BleProv";
 
     BleProv::BleProv() : thread(), result(ProvStatus::ProvPrepare, ""), serviceName("WaterBox_Device") {
-        thread = std::thread(&BleProv::run, this);
     }
 
     void BleProv::run() {
+        net = esp_netif_create_default_wifi_sta();
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+        esp_wifi_init(&cfg);
 
-        wifi_prov_mgr_config_t config = {
-                .scheme = wifi_prov_scheme_ble,
-                .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM
-        };
+        wifi_prov_mgr_config_t config{};
+
+        config.scheme = wifi_prov_scheme_ble;
+        config.scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM;
         wifi_prov_mgr_reset_provisioning();
 
-        ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
+        wifi_prov_mgr_init(config);
 
         const char *service_name = "WaterBox_BLU";
         wifi_prov_security_t security = WIFI_PROV_SECURITY_0;
-        ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, nullptr, service_name, nullptr));
+        wifi_prov_mgr_start_provisioning(security, nullptr, service_name, nullptr);
         result.setStatus(ProvStatus::ProvWaiting);
         wifi_prov_mgr_wait();
 
@@ -66,18 +66,52 @@ namespace ok_wifi {
         return result;
     }
 
-//    void BleProv::start() {
-//        thread = std::thread(&BleProv::run, this);
-//    }
-
-    void BleProv::wait(long timeout) {
+    bool BleProv::wait(long timeout) {
         long count = timeout * 2;
         while (result.getResult() == ok_wifi::ProvResultStatus::ResUnknown) {
             std::this_thread::sleep_for(500ms);
+            if (timeout == 0) {
+                continue;
+            }
+
             count--;
             if (count == 0) {
-                throw idf::event::EventException(ESP_ERR_TIMEOUT);
+                return false;
             }
         }
+        return true;
+    }
+
+    void BleProv::init() {
+        thread = std::thread(&BleProv::run, this);
+    }
+
+    void BleProv::stop() {
+        ESP_LOGW(TAG, "Stopping Ble Prov!");
+
+        if (thread.joinable()) {
+            wifi_prov_mgr_stop_provisioning();
+            thread.join();
+        }
+        // TODO Resolve Auto Stop Question
+        ESP_LOGW(TAG, "mgr stop");
+
+        wifi_prov_mgr_reset_provisioning();
+
+        wifi_prov_mgr_deinit();
+
+        ESP_LOGW(TAG, "disconnect");
+        esp_wifi_disconnect();
+        ESP_LOGW(TAG, "stop");
+        esp_wifi_stop();
+        esp_wifi_restore();
+
+        ESP_LOGW(TAG, "deinit");
+        esp_wifi_deinit();
+        if (net != nullptr) {
+            ESP_LOGW(TAG, "des");
+            esp_netif_destroy_default_wifi(net);
+        }
+        ESP_LOGW(TAG, "Stop Ble Prov Completed!");
     }
 } // ok_wifi

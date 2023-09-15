@@ -9,6 +9,7 @@
 #include <mutex>
 #include <string>
 #include <utility>
+#include <esp_netif_types.h>
 
 namespace ok_wifi {
 
@@ -115,18 +116,20 @@ namespace ok_wifi {
 
         std::string serviceName;
 
+        esp_netif_obj *net;
+
     public:
         BleProv();
-//        /**
-//         * start thread
-//         */
-//        void start();
+
+        void init();
+
+        void stop();
 
         /**
          * Timeout for waiting
-         * @param timeout
+         * @param timeout forever if 0
          */
-        void wait(long timeout = 20);
+        bool wait(long timeout = 20);
 
         /**
          * Main Thread
@@ -134,6 +137,12 @@ namespace ok_wifi {
         void run();
 
         ProvResult &getProvResult();
+
+        static BleProv& getInstance()
+        {
+            static BleProv prov;
+            return prov;
+        }
     };
 
 } // ok_wifi
