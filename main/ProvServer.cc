@@ -63,22 +63,27 @@ namespace ok_wifi {
                      event->mac, event->aid);
         }
     }
+    static esp_event_handler_instance_t instance_any_id;
 
     void ProvServer::init() {
-        thread = std::thread(&ProvServer::run, this);
-
+        if (netPtr != nullptr)
+        {
+            esp_netif_destroy_default_wifi(netPtr);
+            netPtr = nullptr;
+        }
         netPtr = esp_netif_create_default_wifi_ap();
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
+        esp_wifi_init(&cfg);
         ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                             ESP_EVENT_ANY_ID,
                                                             &wifi_event_handler,
                                                             nullptr,
-                                                            nullptr));
+                                                            &instance_any_id));
 
-        wifi_config_t wifi_config;
+        wifi_config_t wifi_config{};
+        bzero(&wifi_config, sizeof(wifi_config_t));
+
         wifi_config.ap.channel = 6;
         wifi_config.ap.max_connection = 20;
         wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
@@ -87,19 +92,19 @@ namespace ok_wifi {
         ok_wifi::stringToUint(wifi_config.ap.ssid, board_ssid);
         ok_wifi::stringToUint(wifi_config.ap.password, board_pwd);
 
-        if (strlen(reinterpret_cast<const char *>(wifi_config.ap.password)) == 0) {
+        if (board_pwd.empty()) {
             wifi_config.ap.authmode = WIFI_AUTH_OPEN;
         }
 
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+        ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
         ESP_ERROR_CHECK(esp_wifi_start());
 
         ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
                  board_ssid.c_str(), board_pwd.c_str(), 6);
 
         // start httpd
-
         httpd_config_t config = HTTPD_DEFAULT_CONFIG();
         config.lru_purge_enable = true;
         responseJson = "{\"ssid\":\"" + prov_ssid + "\"," + "\"pwd\":\"" + prov_pwd + "\"}";
@@ -112,23 +117,25 @@ namespace ok_wifi {
 
         // Start the httpd server
         ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-        if (httpd_start(&server, &config) == ESP_OK) {
-            // Set URI handlers
-            ESP_LOGI(TAG, "Registering URI handlers");
-            httpd_register_uri_handler(server, &prov);
-        }
+        ESP_ERROR_CHECK(httpd_start(&server, &config));
+        // Set URI handlers
+        ESP_LOGI(TAG, "Registering URI handlers");
+        ESP_ERROR_CHECK(httpd_register_uri_handler(server, &prov));
+        thread = std::thread(&ProvServer::run, this);
     }
 
     void ProvServer::stop() {
         httpd_stop(server);
         esp_wifi_stop();
         esp_wifi_deinit();
-        esp_netif_destroy(netPtr);
+        esp_netif_destroy_default_wifi(netPtr);
 
         ESP_LOGW(TAG, "Httpd And Wifi Going Down!");
     }
 
     void ProvServer::waitCompleted() {
-        thread.join();
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
 }
