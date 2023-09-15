@@ -10,9 +10,6 @@
 #include <lwip/netdb.h>
 #include <ArduinoJson.hpp>
 
-static const int CONNECTED_BIT = BIT0;
-static const int ESPTOUCH_DONE_BIT = BIT1;
-
 static const int WIFI_CONNECTED_BIT = BIT0;
 static const int WIFI_FAIL_BIT = BIT1;
 
@@ -21,11 +18,15 @@ namespace ok_wifi {
 
     static const char *TAG = "ProvClient";
 
+    static esp_event_handler_instance_t instance_any_id;
+    static esp_event_handler_instance_t instance_got_ip;
+
     static void event_handler(void *arg,
                               esp_event_base_t event_base,
                               int32_t event_id,
                               void *event_data) {
         if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+            ESP_LOGI(TAG, "Start Connect");
             esp_wifi_connect();
         } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
             auto *event = (ip_event_got_ip_t *) event_data;
@@ -42,15 +43,17 @@ namespace ok_wifi {
         }
         wifi_event_group = xEventGroupCreate();
 
-        if (net == nullptr) {
-            net = esp_netif_create_default_wifi_sta();
+        if (net != nullptr) {
+            esp_netif_destroy_default_wifi(net);
+            net = nullptr;
         }
+        net = esp_netif_create_default_wifi_sta();
+        esp_netif_dhcpc_start(net);
+
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-        esp_event_handler_instance_t instance_any_id;
-        esp_event_handler_instance_t instance_got_ip;
         ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                             ESP_EVENT_ANY_ID,
                                                             &event_handler,
@@ -65,18 +68,17 @@ namespace ok_wifi {
         bzero(&wifi_config, sizeof(wifi_config_t));
         ok_wifi::stringToUint(wifi_config.sta.ssid, server_ssid);
         ok_wifi::stringToUint(wifi_config.sta.password, server_pwd);
+        wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+        wifi_config.sta.pmf_cfg.required = false;
+        wifi_config.sta.channel = 6;
 
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-
-        ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
+        ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
 
         ESP_ERROR_CHECK(esp_wifi_start());
+        esp_wifi_connect();
         ESP_LOGI(TAG, "wifi_init_sta finished.");
-        /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
-         * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
-         * The bits are set by event_handler() (see above) */
     }
 
     void ProvClient::deinit() {
@@ -84,11 +86,16 @@ namespace ok_wifi {
         esp_event_handler_unregister(WIFI_EVENT,
                                      ESP_EVENT_ANY_ID,
                                      &event_handler);
+        esp_event_handler_unregister(IP_EVENT,
+                                     IP_EVENT_STA_GOT_IP,
+                                     &event_handler);
         esp_wifi_stop();
         esp_wifi_deinit();
-        esp_netif_destroy(net);
+        esp_netif_destroy_default_wifi(net);
+        net = nullptr;
         if (wifi_event_group != nullptr) {
             vEventGroupDelete(wifi_event_group);
+            wifi_event_group = nullptr;
         }
     }
 
@@ -100,14 +107,16 @@ namespace ok_wifi {
             std::this_thread::sleep_for(1ms);
             if (outOfDateCounter <= 0) {
                 return ClientProvResult::ProvOutOfDate;
-                break;
             }
+
+            /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
+             * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
+             * The bits are set by event_handler() (see above) */
             EventBits_t bits = xEventGroupWaitBits(wifi_event_group,
                                                    WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                                    false,
                                                    false,
-                                                   1000 / portTICK_PERIOD_MS);
-            ESP_LOGI(TAG, "end wait bit.");
+                                                   5000 / portTICK_PERIOD_MS);
             if (bits & WIFI_CONNECTED_BIT) {
                 ESP_LOGI(TAG, "Connected to Prov Server");
                 return ClientProvResult::ProvConnected;
@@ -117,8 +126,12 @@ namespace ok_wifi {
             } else {
                 ESP_LOGW(TAG, "UNEXPECTED EVENT");
                 outOfDateCounter--;
+                esp_wifi_disconnect();
+                std::this_thread::sleep_for(1s);
+                esp_wifi_connect();
             }
         }
+        ESP_LOGI(TAG, "end wait bit.");
     }
 
     bool ProvClient::sendRequest() {

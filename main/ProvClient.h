@@ -42,7 +42,7 @@ namespace ok_wifi {
 
         std::thread thread;
 
-        esp_netif_obj *net;
+        esp_netif_obj *net = nullptr;
 
         wifi_config_t wifi_config;
 
