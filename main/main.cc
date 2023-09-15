@@ -20,6 +20,7 @@
 #include "wifi_provisioning/manager.h"
 #include "BleProv.h"
 #include "ProvServer.h"
+#include "ProvClient.h"
 
 // ms s us
 using namespace std::chrono_literals;
@@ -72,11 +73,34 @@ extern "C" _Noreturn void app_main() {
         }
     });
 
-    auto& server = ok_wifi::ProvServer::getInstance();
-    server.setProvPwd("123");
-    server.setProvSsid("abccccc");
-    server.init();
-    server.waitCompleted();
+//    auto& server = ok_wifi::ProvServer::getInstance();
+//    server.setProvPwd("123");
+//    server.setProvSsid("abccccc");
+//    server.init();
+//    server.waitCompleted();
+
+    auto &client = ok_wifi::ProvClient::getInstance();
+    do {
+        client.init();
+
+        if (client.waitWifiConnect() == ok_wifi::ClientProvResult::ProvConnected) {
+            ESP_LOGI(TAG, "Connect Successful!");
+        } else {
+            ESP_LOGE(TAG, "Connect Failed!");
+            break;
+        }
+
+        if (client.sendRequest()) {
+            ESP_LOGI(TAG, "Request Successful!");
+            ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", client.getProvSsid().c_str(), client.getProvPwd().c_str());
+        } else {
+            ESP_LOGE(TAG, "Request Failed!");
+            break;
+        }
+
+    } while (false);
+
+    client.deinit();
 
 //    auto okWifi = std::make_unique<ok_wifi::BleProv>();
 //    try {
