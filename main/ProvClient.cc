@@ -41,7 +41,11 @@ namespace ok_wifi {
             wifi_event_group = nullptr;
         }
         wifi_event_group = xEventGroupCreate();
-        net = esp_netif_create_default_wifi_sta();
+
+        if (net == nullptr) {
+            net = esp_netif_create_default_wifi_sta();
+        }
+
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
@@ -57,11 +61,13 @@ namespace ok_wifi {
                                                             &event_handler,
                                                             nullptr,
                                                             &instance_got_ip));
+
         bzero(&wifi_config, sizeof(wifi_config_t));
         ok_wifi::stringToUint(wifi_config.sta.ssid, server_ssid);
         ok_wifi::stringToUint(wifi_config.sta.password, server_pwd);
 
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
@@ -235,9 +241,4 @@ namespace ok_wifi {
 
         return true;
     }
-
-    void ProvClient::scanServer() {
-
-    }
-
 }

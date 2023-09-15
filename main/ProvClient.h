@@ -90,8 +90,6 @@ namespace ok_wifi {
 
         void deinit();
 
-        void scanServer();
-
         ClientProvResult waitWifiConnect();
 
         /**
