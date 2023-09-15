@@ -19,8 +19,16 @@
 #include "esp_eth.h"
 #include "esp_tls_crypto.h"
 #include <esp_http_client.h>
+#include <esp_timer_cxx.hpp>
+#include "ProvServer.h"
 
 namespace ok_wifi {
+
+    enum class ClientProvResult {
+        ProvConnectFailed,
+        ProvOutOfDate,
+        ProvConnected,
+    };
 
 
     class ProvClient {
@@ -34,8 +42,16 @@ namespace ok_wifi {
 
         std::thread thread;
 
-//    httpd_handle_t client;
+        esp_netif_obj *net;
 
+        wifi_config_t wifi_config;
+
+        // connect out of date default to 50s
+        int outOfDate = 50;
+
+        std::string server = "192.168.4.1";
+        std::string port = "80";
+        std::string path = "/prov";
     public:
         [[nodiscard]] const std::string &getServerSsid() const {
             return server_ssid;
@@ -72,13 +88,23 @@ namespace ok_wifi {
     public:
         void init();
 
-        void run();
+        void deinit();
 
+        void scanServer();
 
-        ProvClient();
+        ClientProvResult waitWifiConnect();
 
+        /**
+         * Send Prov Request to Server and get Prov Data
+         */
+        bool sendRequest();
 
-        ProvClient &getInstance() {
+        /**
+         * init
+         */
+        ProvClient() : server_ssid(DEFAULT_PROV_SSID), server_pwd(DEFAULT_PROV_PWD) {};
+
+        static ProvClient &getInstance() {
             static ProvClient client;
             return client;
         }
