@@ -3,3 +3,14 @@
 //
 
 #include "ProvClient.h"
+
+namespace ok_wifi {
+
+    static const char* TAG = "ProvClient";
+
+    void ProvClient::init() {
+
+
+    }
+
+}
