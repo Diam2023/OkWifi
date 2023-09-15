@@ -43,6 +43,7 @@ namespace ok_wifi {
         httpd_uri_t prov;
 
         std::string responseJson;
+        esp_netif_obj *netPtr;
 
         // start thread
         void run();

@@ -67,7 +67,7 @@ namespace ok_wifi {
     void ProvServer::init() {
         thread = std::thread(&ProvServer::run, this);
 
-        esp_netif_create_default_wifi_ap();
+        netPtr = esp_netif_create_default_wifi_ap();
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -123,6 +123,7 @@ namespace ok_wifi {
         httpd_stop(server);
         esp_wifi_stop();
         esp_wifi_deinit();
+        esp_netif_destroy(netPtr);
 
         ESP_LOGW(TAG, "Httpd And Wifi Going Down!");
     }
