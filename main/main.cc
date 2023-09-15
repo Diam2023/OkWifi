@@ -19,6 +19,7 @@
 
 #include "wifi_provisioning/manager.h"
 #include "BleProv.h"
+#include "ProvServer.h"
 
 // ms s us
 using namespace std::chrono_literals;
@@ -71,20 +72,26 @@ extern "C" _Noreturn void app_main() {
         }
     });
 
-    auto okWifi = std::make_unique<ok_wifi::BleProv>();
-    try {
-        okWifi->wait(50);
-    } catch (idf::event::EventException &exception) {
-        ESP_LOGE(TAG, "Error %s", exception.what());
-    }
+    auto& server = ok_wifi::ProvServer::getInstance();
+    server.setProvPwd("123");
+    server.setProvSsid("abccccc");
+    server.init();
+    server.waitCompleted();
 
-    auto &res_ = okWifi->getProvResult();
-    if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
-        std::cout << "Completed Prov SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
-    } else {
-        std::cout << "Error for Prov" << std::endl;
-    }
-
+//    auto okWifi = std::make_unique<ok_wifi::BleProv>();
+//    try {
+//        okWifi->wait(50);
+//    } catch (idf::event::EventException &exception) {
+//        ESP_LOGE(TAG, "Error %s", exception.what());
+//    }
+//
+//    auto &res_ = okWifi->getProvResult();
+//    if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
+//        std::cout << "Completed Prov SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
+//    } else {
+//        std::cout << "Error for Prov" << std::endl;
+//    }
+//
     while (true) {
         std::cout << "Tick Time" << std::endl;
         std::this_thread::sleep_for(10s);
