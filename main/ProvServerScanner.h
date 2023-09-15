@@ -11,6 +11,7 @@
 #include "ProvServer.h"
 
 namespace ok_wifi {
+    using namespace std::chrono_literals;
 
     class ProvServerScanner {
     private:
@@ -30,6 +31,9 @@ namespace ok_wifi {
         uint16_t number = DEFAULT_SCAN_LIST_SIZE;
 
     public:
+
+        bool scanOnce(std::chrono::seconds sec = 1s);
+
         [[nodiscard]] const std::string &getServerSsid() const;
 
         void setServerSsid(const std::string &serverSsid);
