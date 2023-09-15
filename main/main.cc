@@ -21,6 +21,8 @@
 #include "BleProv.h"
 #include "ProvServer.h"
 #include "ProvClient.h"
+#include "OkWifi.h"
+#include "ProvServerScanner.h"
 
 // ms s us
 using namespace std::chrono_literals;
@@ -48,7 +50,7 @@ extern "C" _Noreturn void app_main() {
     esp_event_loop_create_default();
 
     /* Initialize Wi-Fi including netif with default config */
-    esp_netif_create_default_wifi_sta();
+    //    esp_netif_create_default_wifi_sta();
 
     auto led = idf::GPIO_Output(idf::GPIONum(13));
     auto led_status = false;
@@ -79,6 +81,30 @@ extern "C" _Noreturn void app_main() {
 //    server.init();
 //    server.waitCompleted();
 
+
+    auto &scanner = ok_wifi::ProvServerScanner::getInstance();
+    scanner.init();
+    ESP_LOGI(TAG, "Start Scanner");
+    std::this_thread::sleep_for(5s);
+
+    if (scanner.checkFounded()) {
+        ESP_LOGI(TAG, "First Check founded");
+    } else {
+        // Wait 20s
+        while (true) {
+            try {
+                if (scanner.wait(20)) {
+                    ESP_LOGI(TAG, "Founded %s", scanner.getServerSsid().c_str());
+                    break;
+                }
+                // Founded
+            } catch (idf::event::EventException &exception) {
+                ESP_LOGE(TAG, "Error %s", exception.what());
+            }
+        }
+    }
+    scanner.deinit();
+
     auto &client = ok_wifi::ProvClient::getInstance();
     do {
         client.init();
@@ -101,6 +127,7 @@ extern "C" _Noreturn void app_main() {
     } while (false);
 
     client.deinit();
+
 
 //    auto okWifi = std::make_unique<ok_wifi::BleProv>();
 //    try {
