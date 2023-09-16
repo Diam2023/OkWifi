@@ -227,12 +227,15 @@ extern "C" _Noreturn void app_main() {
 
     ok_wifi::OkWifi::getInstance().init();
 
-    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
-        ESP_LOGI(TAG, "Wait Prov Complete!");
-        (*ok_wifi::OkWifi::getInstance()).join();
-    }
+//    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
+//        ESP_LOGI(TAG, "Wait Prov Complete!");
+//        (*ok_wifi::OkWifi::getInstance()).join();
+//    }
+    ok_wifi::OkWifi::getInstance().join();
+    ESP_LOGI(TAG, "Wait Prov Complete!");
 
-//    ESP_LOGI(TAG, "Prov All Down!");
+    ESP_LOGI(TAG, "Got ssid and pwd: %s %s", ok_wifi::OkWifi::getInstance().getProvSsidRes().c_str(),
+             ok_wifi::OkWifi::getInstance().getProvPwdRes().c_str());
 
     now_status = Status::Ending;
 
