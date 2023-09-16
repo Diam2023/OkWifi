@@ -12,8 +12,6 @@
 #include <esp_timer_cxx.hpp>
 #include <esp_wps.h>
 
-//extern uint8_t esp_wifi_get_user_init_flag_internal(void);
-
 namespace ok_wifi {
 
     const long DEFAULT_SCAN_LIST_SIZE = 50;
