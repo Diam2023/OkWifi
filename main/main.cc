@@ -30,14 +30,6 @@ using namespace std::chrono_literals;
 static const char *TAG = "Main";
 
 
-enum class OkWifiStartMode {
-    ModeUnInitialize,
-    ModeWaitBleProvAndServer,
-    ModeServer,
-    ModeClient,
-    ModeWaitServerCompleted,
-    ModeCompleted
-};
 
 /**
  * @brief Application main
@@ -85,155 +77,162 @@ extern "C" _Noreturn void app_main() {
         }
     });
 
-    OkWifiStartMode mode = OkWifiStartMode::ModeUnInitialize;
 
-    auto &scanner = ok_wifi::ProvServerScanner::getInstance();
-    scanner.init();
-    ESP_LOGI(TAG, "Wait first scan");
+//    OkWifiStartMode mode = OkWifiStartMode::ModeUnInitialize;
+//
+//    auto &scanner = ok_wifi::ProvServerScanner::getInstance();
+//    scanner.init();
+//    ESP_LOGI(TAG, "Wait first scan");
+//
+//    std::this_thread::sleep_for(5s);
+//    ok_wifi::BleProv &prov = ok_wifi::BleProv::getInstance();
+//    auto &client = ok_wifi::ProvClient::getInstance();
+//    auto &server = ok_wifi::ProvServer::getInstance();
+//
+//
+//    if (!scanner.checkFounded()) {
+//        mode = OkWifiStartMode::ModeWaitBleProvAndServer;
+//
+//        // not found
+//        // deinit scanner
+//
+//        ESP_LOGI(TAG, "Deinit Scan");
+//        scanner.deinit();
+//
+//        std::this_thread::sleep_for(1s);
+//        // init prov
+//        ESP_LOGI(TAG, "Init ble prov");
+//        prov.init();
+//
+//        while (true) {
+//            auto &res_ = prov.getProvResult();
+//            if (prov.wait(1)) {
+//                if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
+//                    std::cout << "Completed Prov SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
+//                    mode = OkWifiStartMode::ModeServer;
+//                    prov.stop();
+//                    break;
+//                } else {
+//                    std::cout << "Error for Prov" << std::endl;
+//                    std::this_thread::sleep_for(5s);
+//                    continue;
+//                }
+//            }
+//
+//            wifi_prov_sta_fail_reason_t reason;
+//            // TODO Wait more issue resume
+//            if (wifi_prov_mgr_get_wifi_disconnect_reason(&reason) == ESP_OK) {
+//                // Restart
+//                prov.stop();
+//                prov.init();
+//            }
+//
+//            std::this_thread::sleep_for(5s);
+//
+//            try {
+//                if (scanner.scanOnce(1s)) {
+//
+//                    ESP_LOGI(TAG, "Stopping Ble Prov!");
+//                    prov.stop();
+//
+//                    ESP_LOGI(TAG, "Stopped Ble Prov!");
+//
+//                    mode = OkWifiStartMode::ModeClient;
+//
+//                    ESP_LOGI(TAG, "Client Mode!");
+//                    client.setServerSsid(scanner.getServerSsid());
+//                    client.init();
+//                    if (client.waitWifiConnect() == ok_wifi::ClientProvResult::ProvConnected) {
+//                        ESP_LOGI(TAG, "Connect Successful!");
+//                    } else {
+//                        ESP_LOGE(TAG, "Connect Failed!");
+//                        continue;
+//                    }
+//
+//                    if (client.sendRequest()) {
+//                        ESP_LOGI(TAG, "Request Successful!");
+//                        ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", client.getProvSsid().c_str(),
+//                                 client.getProvPwd().c_str());
+//                        mode = OkWifiStartMode::ModeCompleted;
+//                        break;
+//                    } else {
+//                        ESP_LOGE(TAG, "Request Failed!");
+//                        continue;
+//                    }
+//                }
+//            } catch (idf::event::EventException &exception) {
+//                if (exception.error == ESP_ERR_WIFI_STATE) {
+//                    ESP_LOGW(TAG, "Stop Scan for 20s!");
+//                    esp_wifi_scan_stop();
+//
+//                    esp_wifi_disconnect();
+//                    esp_wifi_connect();
+//
+//                    // Stop Scan When Ble Received Prov Message
+//                    std::this_thread::sleep_for(20s);
+//                }
+//            }
+//            std::this_thread::sleep_for(5s);
+//        }
+//    } else {
+//        scanner.deinit();
+//        esp_event_loop_delete_default();
+//        esp_event_loop_create_default();
+//
+//        do {
+//            // Found prover
+//            client.setServerSsid(scanner.getServerSsid());
+//
+//            client.init();
+//            if (client.waitWifiConnect() == ok_wifi::ClientProvResult::ProvConnected) {
+//                ESP_LOGI(TAG, "Connect Successful!");
+//            } else {
+//                ESP_LOGE(TAG, "Connect Failed!");
+//                continue;
+//            }
+//
+//            if (client.sendRequest()) {
+//                ESP_LOGI(TAG, "Request Successful!");
+//                ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", client.getProvSsid().c_str(),
+//                         client.getProvPwd().c_str());
+//                mode = OkWifiStartMode::ModeCompleted;
+//                break;
+//            } else {
+//                ESP_LOGE(TAG, "Request Failed!");
+//                continue;
+//            }
+//        } while (true);
+//    }
+//
+//    if (mode == OkWifiStartMode::ModeServer) {
+//        std::this_thread::sleep_for(5s);
+//
+//        // Start Prov Server
+//        auto &res_ = prov.getProvResult();
+//        std::cout << "Prepare Sending Prov Data SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
+//        mode = OkWifiStartMode::ModeWaitServerCompleted;
+//        esp_event_loop_delete_default();
+//        esp_event_loop_create_default();
+//
+//        server.setProvPwd(res_.getSsid());
+//        server.setProvSsid(res_.getPwd());
+//        server.init();
+//        ESP_LOGI(TAG, "Start ProvServer Mode!");
+//    }
+//
+//    if (mode == OkWifiStartMode::ModeWaitServerCompleted) {
+//        server.waitCompleted();
+//        ESP_LOGI(TAG, "Wait ProvServer Completed!");
+//    }
 
-    std::this_thread::sleep_for(5s);
-    ok_wifi::BleProv &prov = ok_wifi::BleProv::getInstance();
+    ok_wifi::OkWifi::getInstance().init();
 
-    auto &client = ok_wifi::ProvClient::getInstance();
-    auto &server = ok_wifi::ProvServer::getInstance();
-
-
-    if (!scanner.checkFounded()) {
-        mode = OkWifiStartMode::ModeWaitBleProvAndServer;
-
-        // not found
-        // deinit scanner
-
-        ESP_LOGI(TAG, "Deinit Scan");
-        scanner.deinit();
-
-        std::this_thread::sleep_for(1s);
-        // init prov
-        ESP_LOGI(TAG, "Init ble prov");
-        prov.init();
-
-        while (true) {
-            auto &res_ = prov.getProvResult();
-            if (prov.wait(1)) {
-                if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
-                    std::cout << "Completed Prov SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
-                    mode = OkWifiStartMode::ModeServer;
-                    prov.stop();
-                    break;
-                } else {
-                    std::cout << "Error for Prov" << std::endl;
-                    std::this_thread::sleep_for(5s);
-                    continue;
-                }
-            }
-
-            wifi_prov_sta_fail_reason_t reason;
-            // TODO Wait more issue resume
-            if (wifi_prov_mgr_get_wifi_disconnect_reason(&reason) == ESP_OK) {
-                // Restart
-                prov.stop();
-                prov.init();
-            }
-
-            std::this_thread::sleep_for(5s);
-
-            try {
-                if (scanner.scanOnce(1s)) {
-
-                    ESP_LOGI(TAG, "Stopping Ble Prov!");
-                    prov.stop();
-
-                    ESP_LOGI(TAG, "Stopped Ble Prov!");
-
-                    mode = OkWifiStartMode::ModeClient;
-
-                    ESP_LOGI(TAG, "Client Mode!");
-                    client.setServerSsid(scanner.getServerSsid());
-                    client.init();
-                    if (client.waitWifiConnect() == ok_wifi::ClientProvResult::ProvConnected) {
-                        ESP_LOGI(TAG, "Connect Successful!");
-                    } else {
-                        ESP_LOGE(TAG, "Connect Failed!");
-                        continue;
-                    }
-
-                    if (client.sendRequest()) {
-                        ESP_LOGI(TAG, "Request Successful!");
-                        ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", client.getProvSsid().c_str(),
-                                 client.getProvPwd().c_str());
-                        mode = OkWifiStartMode::ModeCompleted;
-                        break;
-                    } else {
-                        ESP_LOGE(TAG, "Request Failed!");
-                        continue;
-                    }
-                }
-            } catch (idf::event::EventException &exception) {
-                if (exception.error == ESP_ERR_WIFI_STATE) {
-                    ESP_LOGW(TAG, "Stop Scan for 20s!");
-                    esp_wifi_scan_stop();
-
-                    esp_wifi_disconnect();
-                    esp_wifi_connect();
-
-                    // Stop Scan When Ble Received Prov Message
-                    std::this_thread::sleep_for(20s);
-                }
-            }
-            std::this_thread::sleep_for(5s);
-        }
-    } else {
-        scanner.deinit();
-        esp_event_loop_delete_default();
-        esp_event_loop_create_default();
-
-        do {
-            // Found prover
-            client.setServerSsid(scanner.getServerSsid());
-
-            client.init();
-            if (client.waitWifiConnect() == ok_wifi::ClientProvResult::ProvConnected) {
-                ESP_LOGI(TAG, "Connect Successful!");
-            } else {
-                ESP_LOGE(TAG, "Connect Failed!");
-                continue;
-            }
-
-            if (client.sendRequest()) {
-                ESP_LOGI(TAG, "Request Successful!");
-                ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", client.getProvSsid().c_str(),
-                         client.getProvPwd().c_str());
-                mode = OkWifiStartMode::ModeCompleted;
-                break;
-            } else {
-                ESP_LOGE(TAG, "Request Failed!");
-                continue;
-            }
-        } while (true);
+    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
+        ESP_LOGI(TAG, "Wait Prov Complete!");
+        (*ok_wifi::OkWifi::getInstance()).join();
     }
 
-    if (mode == OkWifiStartMode::ModeServer) {
-        std::this_thread::sleep_for(5s);
-
-        // Start Prov Server
-        auto &res_ = prov.getProvResult();
-        std::cout << "Prepare Sending Prov Data SSID: " << res_.getSsid() << " PWD: " << res_.getPwd() << std::endl;
-        mode = OkWifiStartMode::ModeWaitServerCompleted;
-        esp_event_loop_delete_default();
-        esp_event_loop_create_default();
-
-        server.setProvPwd(res_.getSsid());
-        server.setProvSsid(res_.getPwd());
-        server.init();
-        ESP_LOGI(TAG, "Start ProvServer Mode!");
-    }
-
-    if (mode == OkWifiStartMode::ModeWaitServerCompleted) {
-        server.waitCompleted();
-        ESP_LOGI(TAG, "Wait ProvServer Completed!");
-    }
-
-    ESP_LOGI(TAG, "Prov All Down!");
+//    ESP_LOGI(TAG, "Prov All Down!");
 
     now_status = Status::Ending;
 

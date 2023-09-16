@@ -16,6 +16,15 @@
 
 namespace ok_wifi {
 
+    enum class OkWifiStartMode {
+        ModeUnInitialize,
+        ModeWaitBleProvAndServer,
+        ModeServer,
+        ModeClient,
+        ModeWaitServerCompleted,
+        ModeCompleted
+    };
+
     /**
      * This Class Will Scan Ap If exist Prov Ap, this will connect it, And When Ap is not exist, it will call ble Prov
      * It Will steal scanning when ble prov is processing.
@@ -27,7 +36,10 @@ namespace ok_wifi {
         std::string service_ssid;
         std::string ap_pwd = "OkWifi";
 
-        std::thread ok_wifi_thread;
+
+        std::thread thread;
+
+        OkWifiStartMode nowMode;
     public:
 
         /**
@@ -40,13 +52,19 @@ namespace ok_wifi {
          */
         void run();
 
-        /**
-         * Ap Mode to provide prov service
-         */
-        void prov_run();
+        void init();
 
-        static OkWifi& getInstance()
-        {
+        void deinit();
+
+        OkWifiStartMode getStatus() {
+            return nowMode;
+        }
+
+        std::thread& operator*() {
+            return thread;
+        };
+
+        static OkWifi &getInstance() {
             static OkWifi instance;
             return instance;
         };
