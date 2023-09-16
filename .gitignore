@@ -3,3 +3,4 @@
 *.lock
 managed_components
 *.log
+workspace.xml
