@@ -22,17 +22,24 @@ namespace ok_wifi {
     }
 
     void OkWifi::init() {
-        thread = std::thread(&OkWifi::run, this);
+        pthread_attr_t attribute;
+        pthread_attr_init(&attribute);
+        pthread_attr_setstacksize(&attribute, 1024 * 10);
+        pthread_create(&thread, &attribute, [](void *arg) -> void * {
+            auto obj = reinterpret_cast<OkWifi *>(arg);
+            obj->run();
+            return reinterpret_cast<void *>(NULL);
+        }, reinterpret_cast<void *>(this));
     }
 
     void OkWifi::run() {
         ProvServerScanner::getInstance().init();
-        ESP_LOGI(TAG, "Start first scan");
+//        ESP_LOGI(TAG, "Start first scan");
         std::this_thread::sleep_for(2s);
 
         bool firstScanResult = ProvServerScanner::getInstance().checkFounded();
         // stop scanner
-        ESP_LOGW(TAG, "Deinit Scanner");
+//        ESP_LOGW(TAG, "Deinit Scanner");
         ProvServerScanner::getInstance().deinit();
         auto &res_ = BleProv::getInstance().getProvResult();
 
@@ -47,24 +54,23 @@ namespace ok_wifi {
                     if (firstScanResult) {
                         nowMode = OkWifiStartMode::ModeClient;
                     } else {
-                        ESP_LOGI(TAG, "Init ble prov");
+//                        ESP_LOGI(TAG, "Init ble prov");
                         BleProv::getInstance().init();
                         nowMode = OkWifiStartMode::ModeWaitBleProvAndServer;
                     }
                     break;
                 case OkWifiStartMode::ModeWaitBleProvAndServer:
-                    ESP_LOGI(TAG, "ModeWaitBleProvAndServer Start");
-
-                    ESP_LOGI(TAG, "Wait 1s for BleProv");
+//                    ESP_LOGI(TAG, "ModeWaitBleProvAndServer Start");
+//                    ESP_LOGI(TAG, "Wait 1s for BleProv");
                     if (BleProv::getInstance().wait(1)) {
                         if (res_.getResult() == ok_wifi::ProvResultStatus::ResOk) {
-                            ESP_LOGI(TAG, "Completed Prov SSID: %s PWD: %s", res_.getSsid().c_str(),
-                                     res_.getPwd().c_str());
+//                            ESP_LOGI(TAG, "Completed Prov SSID: %s PWD: %s", res_.getSsid().c_str(),
+//                                     res_.getPwd().c_str());
                             nowMode = OkWifiStartMode::ModeServer;
                             BleProv::getInstance().stop();
                             continue;
                         } else {
-                            ESP_LOGE(TAG, "Error for Prov");
+//                            ESP_LOGE(TAG, "Error for Prov");
                             std::this_thread::sleep_for(3s);
                         }
                     }
@@ -73,7 +79,7 @@ namespace ok_wifi {
                     wifi_prov_sta_fail_reason_t reason;
                     if (wifi_prov_mgr_get_wifi_disconnect_reason(&reason) == ESP_OK) {
                         // Restart
-                        ESP_LOGI(TAG, "Restart BleProv");
+//                        ESP_LOGI(TAG, "Restart BleProv");
                         BleProv::getInstance().stop();
                         BleProv::getInstance().init();
                     }
@@ -82,7 +88,6 @@ namespace ok_wifi {
                     try {
                         ESP_LOGI(TAG, "Scan once wait for 1s");
                         if (ProvServerScanner::getInstance().scanOnce(1s)) {
-
                             ESP_LOGW(TAG, "Stopping Ble Prov!");
                             BleProv::getInstance().stop();
                             nowMode = OkWifiStartMode::ModeClient;
@@ -93,11 +98,11 @@ namespace ok_wifi {
                     } catch (idf::event::EventException &exception) {
                         if (exception.error == ESP_ERR_WIFI_STATE) {
                             ESP_LOGW(TAG, "Stop Scan for 20s!");
-                            ESP_LOGI(TAG, "Reconnect Prov");
                             esp_wifi_scan_stop();
                             esp_wifi_disconnect();
                             esp_wifi_connect();
                             // Stop Scan When Ble Received Prov Message
+//                            ESP_LOGI(TAG, "Reconnect Prov Wait");
                             std::this_thread::sleep_for(20s);
                         }
                     }
@@ -108,8 +113,13 @@ namespace ok_wifi {
                     esp_event_loop_delete_default();
                     esp_event_loop_create_default();
 
-                    ProvServer::getInstance().setProvPwd(res_.getSsid());
-                    ProvServer::getInstance().setProvSsid(res_.getPwd());
+                    ProvServer::getInstance().setProvSsid(res_.getSsid());
+                    ProvServer::getInstance().setProvPwd(res_.getPwd());
+
+                    prov_ssid_res = res_.getSsid();
+                    prov_pwd_res = res_.getPwd();
+
+                    ProvServer::getInstance().setOutOfDate(provServerLifeTime);
                     ProvServer::getInstance().init();
 
                     ESP_LOGI(TAG, "Prepare Sending Prov Data SSID: %s PWD: %s", res_.getSsid().c_str(),
@@ -133,6 +143,9 @@ namespace ok_wifi {
                         ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]",
                                  ProvClient::getInstance().getProvSsid().c_str(),
                                  ProvClient::getInstance().getProvPwd().c_str());
+
+                        prov_ssid_res = ProvClient::getInstance().getProvSsid();
+                        prov_pwd_res = ProvClient::getInstance().getProvPwd();
                         nowMode = OkWifiStartMode::ModeCompleted;
                         ProvClient::getInstance().deinit();
                         break;
@@ -146,6 +159,9 @@ namespace ok_wifi {
                     ESP_LOGI(TAG, "Waiting ProvServer!");
                     ProvServer::getInstance().waitCompleted();
                     ESP_LOGI(TAG, "Wait ProvServer Completed!");
+
+                    // Auto Stopped
+//                    ProvServer::getInstance().stop();
                     nowMode = OkWifiStartMode::ModeCompleted;
                     break;
                 case OkWifiStartMode::ModeCompleted:
@@ -160,8 +176,15 @@ namespace ok_wifi {
     }
 
     void OkWifi::deinit() {
-        if (thread.joinable()) {
-            thread.join();
-        }
+        join();
     }
+
+    const std::string &OkWifi::getProvSsidRes() const {
+        return prov_ssid_res;
+    }
+
+    const std::string &OkWifi::getProvPwdRes() const {
+        return prov_pwd_res;
+    }
+
 }

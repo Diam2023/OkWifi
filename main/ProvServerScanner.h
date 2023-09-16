@@ -2,131 +2,68 @@
 // Created by 35691 on 9/15/2023.
 //
 
-#include "ProvServerScanner.h"
+#ifndef OKWIFI_PROVSERVERSCANNER_H
+#define OKWIFI_PROVSERVERSCANNER_H
 
-#include "esp_wifi.h"
-#include "esp_log.h"
-#include <cstring>
+#include <string>
+#include <thread>
+#include <esp_netif_types.h>
 #include "ProvServer.h"
-#include <esp_event_cxx.hpp>
-#include <esp_timer_cxx.hpp>
-#include <esp_wps.h>
-
-//extern uint8_t esp_wifi_get_user_init_flag_internal(void);
 
 namespace ok_wifi {
-
-    const long DEFAULT_SCAN_LIST_SIZE = 50;
-
     using namespace std::chrono_literals;
 
-    static const char *TAG = "ProvServerScanner";
+    class ProvServerScanner {
+    private:
+        std::string server_ssid;
 
-    void ProvServerScanner::init() {
-        scan_net = esp_netif_create_default_wifi_sta();
+        bool stop_scan_signal = false;
 
-        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-        esp_wifi_init(&cfg);
+        esp_netif_t *scan_net = nullptr;
 
-        esp_wifi_set_mode(WIFI_MODE_STA);
-        esp_wifi_start();
+        std::thread thread;
 
-        thread = std::thread(&ProvServerScanner::run, this);
-    }
+        bool found_flag = false;
 
-    bool ProvServerScanner::scanOnce(std::chrono::seconds sec) {
-        memset(ap_info, 0, sizeof(ap_info));
-        auto ret = esp_wifi_scan_start(nullptr, true);
-        if (ret == ESP_ERR_WIFI_STATE) {
-            esp_wifi_scan_stop();
-            throw idf::event::EventException(ESP_ERR_WIFI_STATE);
-        }
-        esp_wifi_scan_get_ap_records(&number, ap_info);
-        esp_wifi_scan_get_ap_num(&ap_count);
+        static const long DEFAULT_SCAN_LIST_SIZE = 50;
+        uint16_t ap_count = 0;
+        wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+        uint16_t number = DEFAULT_SCAN_LIST_SIZE;
 
-        ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-        for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-            std::string scanSsid = reinterpret_cast<char *>(ap_info[i].ssid);
-            if (scanSsid == this->server_ssid) {
-                // connect it;
-                ESP_LOGI(TAG, "Found Prov Wifi %s Wait to connect to Prov", scanSsid.c_str());
-                return true;
-            }
-        }
-        esp_wifi_scan_stop();
-        std::this_thread::sleep_for(sec);
-        return false;
-    }
+    public:
 
-    void ProvServerScanner::run() {
-        while (true) {
-            if (stop_scan_signal) {
-                // end for thread;
-                break;
-            }
-            memset(ap_info, 0, sizeof(ap_info));
+        bool scanOnce(std::chrono::seconds sec = 1s);
 
-            esp_wifi_scan_start(nullptr, true);
-            std::this_thread::sleep_for(500ms);
-            esp_wifi_scan_get_ap_records(&number, ap_info);
-            esp_wifi_scan_get_ap_num(&ap_count);
+        [[nodiscard]] const std::string &getServerSsid() const;
 
-            ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-            for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-                std::string scanSsid = reinterpret_cast<char *>(ap_info[i].ssid);
-                if (scanSsid == this->server_ssid) {
-                    // connect it;
-                    ESP_LOGI(TAG, "Found Prov Wifi %s Wait to connect to Prov", scanSsid.c_str());
+        void setServerSsid(const std::string &serverSsid);
 
-                    found_flag = true;
-                    stop_scan_signal = true;
-                }
-            }
-            esp_wifi_scan_stop();
-            esp_wifi_clear_ap_list();
-            std::this_thread::sleep_for(500ms);
-        }
-    }
+        [[nodiscard]] bool checkFounded() const;
 
-    void ProvServerScanner::deinit() {
-        stop_scan_signal = true;
-        if (thread.joinable()) {
+        void join() {
             thread.join();
         }
-        ESP_LOGW(TAG, "Deinit Scanner!!");
-        esp_wifi_clear_ap_list();
-        esp_wifi_scan_stop();
-        esp_wifi_stop();
-        esp_wifi_restore();
-        esp_wifi_deinit();
-        esp_netif_destroy_default_wifi(scan_net);
-    }
 
-    const std::string &ProvServerScanner::getServerSsid() const {
-        return server_ssid;
-    }
+        /**
+         * Wait Time out
+         * @param timeout seconds of time
+         */
+        bool wait(int timeout);
 
-    void ProvServerScanner::setServerSsid(const std::string &serverSsid) {
-        server_ssid = serverSsid;
-    }
+        void run();
 
-    bool ProvServerScanner::checkFounded() const {
-        return found_flag;
-    }
+        ProvServerScanner(std::string ssid = DEFAULT_PROV_SSID) : server_ssid(ssid) {};
 
-    bool ProvServerScanner::wait(int timeout) {
-        while (true) {
-            timeout--;
-            if (timeout <= 0) {
-                throw idf::event::EventException(ESP_ERR_TIMEOUT);
-                return false;
-            }
-            std::this_thread::sleep_for(1s);
-            if (found_flag) {
-                break;
-            }
+        void init();
+
+        void deinit();
+
+        static ProvServerScanner &getInstance() {
+            static ProvServerScanner scanner;
+            return scanner;
         }
-        return true;
-    }
+    };
 
 } // ok_wifi
+
+#endif //OKWIFI_PROVSERVERSCANNER_H

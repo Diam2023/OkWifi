@@ -31,16 +31,30 @@ namespace ok_wifi {
      */
     class OkWifi {
     private:
-
         // Ap station to completed
-        std::string service_ssid;
-        std::string ap_pwd = "OkWifi";
-
-
-        std::thread thread;
+        std::string prov_ssid_res;
+        std::string prov_pwd_res;
+        pthread_t thread;
 
         OkWifiStartMode nowMode;
+
+        /**
+         * ProvServer Wait time
+         */
+        int provServerLifeTime = 100;
     public:
+
+        [[nodiscard]] int getProvServerLifeTime() const {
+            return provServerLifeTime;
+        }
+
+        void setProvServerLifeTime(int provServerLifeTime_) {
+            OkWifi::provServerLifeTime = provServerLifeTime_;
+        }
+
+        [[nodiscard]] const std::string &getProvSsidRes() const;
+
+        [[nodiscard]] const std::string &getProvPwdRes() const;
 
         /**
          * Create Thread to run it.
@@ -60,8 +74,8 @@ namespace ok_wifi {
             return nowMode;
         }
 
-        std::thread& operator*() {
-            return thread;
+        void join() const {
+            pthread_join(thread, nullptr);
         };
 
         static OkWifi &getInstance() {
