@@ -146,7 +146,6 @@ namespace ok_wifi {
                     ESP_LOGI(TAG, "Waiting ProvServer!");
                     ProvServer::getInstance().waitCompleted();
                     ESP_LOGI(TAG, "Wait ProvServer Completed!");
-                    ProvServer::getInstance().stop();
                     nowMode = OkWifiStartMode::ModeCompleted;
                     break;
                 case OkWifiStartMode::ModeCompleted:
