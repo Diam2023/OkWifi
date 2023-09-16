@@ -6,15 +6,11 @@
 
 #include "esp_wifi.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
-#include <memory>
 #include <cstring>
 #include "ProvServer.h"
 #include <esp_event_cxx.hpp>
 #include <esp_timer_cxx.hpp>
 #include <esp_wps.h>
-
-//extern uint8_t esp_wifi_get_user_init_flag_internal(void);
 
 namespace ok_wifi {
 

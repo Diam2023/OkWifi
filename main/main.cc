@@ -70,10 +70,12 @@ extern "C" _Noreturn void app_main() {
 
     ok_wifi::OkWifi::getInstance().init();
 
-    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
-        ESP_LOGI(TAG, "Wait Prov Complete!");
-        (*ok_wifi::OkWifi::getInstance()).join();
-    }
+//    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
+//        ESP_LOGI(TAG, "Wait Prov Complete!");
+//        (*ok_wifi::OkWifi::getInstance()).join();
+//    }
+    ok_wifi::OkWifi::getInstance().join();
+    ESP_LOGI(TAG, "Wait Prov Complete!");
 
     now_status = Status::Ending;
 
