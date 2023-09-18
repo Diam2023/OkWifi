@@ -44,7 +44,7 @@ namespace ok_wifi {
         wifi_config_t wifi_config;
 
         // connect out of date default to 50s
-        int outOfDate = 50;
+        int outOfDate = 20;
 
         std::string server = "192.168.4.1";
         std::string port = "80";
