@@ -94,24 +94,14 @@ namespace ok_wifi {
             thread.join();
         }
         // TODO Resolve Auto Stop Question
-        ESP_LOGW(TAG, "mgr stop");
-
         wifi_prov_mgr_reset_provisioning();
-
         wifi_prov_mgr_deinit();
-
-        ESP_LOGW(TAG, "disconnect");
         esp_wifi_disconnect();
-        ESP_LOGW(TAG, "stop");
         esp_wifi_stop();
         esp_wifi_restore();
-
-        ESP_LOGW(TAG, "deinit");
         esp_wifi_deinit();
         if (net != nullptr) {
-            ESP_LOGW(TAG, "des");
             esp_netif_destroy_default_wifi(net);
         }
-        ESP_LOGW(TAG, "Stop Ble Prov Completed!");
     }
 } // ok_wifi
