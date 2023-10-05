@@ -91,6 +91,7 @@ namespace ok_wifi {
                             ESP_LOGW(TAG, "Stopping Ble Prov!");
                             BleProv::getInstance().stop();
                             nowMode = OkWifiStartMode::ModeClient;
+                            ESP_LOGI(TAG, "Find ProvServer Name: %s", ProvServerScanner::getInstance().getServerSsid().c_str());
                             ProvClient::getInstance().setServerSsid(ProvServerScanner::getInstance().getServerSsid());
                             ProvClient::getInstance().init();
                             continue;

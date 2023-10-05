@@ -57,7 +57,7 @@ namespace ok_wifi {
                 result.setResult(ProvResultStatus::ResError);
             }
         } else {
-            ESP_LOGI(TAG, "Prov Wifi Error!");
+            ESP_LOGW(TAG, "BleProv Exit!");
             result.setResult(ProvResultStatus::ResError);
         }
     }

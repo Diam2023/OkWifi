@@ -44,12 +44,14 @@ namespace ok_wifi {
         wifi_config_t wifi_config;
 
         // connect out of date default to 50s
-        int outOfDate = 50;
+        int provServerOutOfDate = 50;
 
         std::string server = "192.168.4.1";
         std::string port = "80";
         std::string path = "/prov";
     public:
+        [[nodiscard]] int getProvServerOutOfDate() const { return provServerOutOfDate; };
+
         [[nodiscard]] const std::string &getServerSsid() const {
             return server_ssid;
         }
