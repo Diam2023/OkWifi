@@ -83,11 +83,12 @@ namespace ok_wifi {
 
         wifi_config_t wifi_config{};
         bzero(&wifi_config, sizeof(wifi_config_t));
-
+        
         wifi_config.ap.channel = 6;
         wifi_config.ap.max_connection = 20;
         wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-        wifi_config.ap.pmf_cfg.required = false;
+        // wifi_config.ap.pmf_cfg.capable = false;
+        // wifi_config.ap.pmf_cfg.required = false;
         wifi_config.ap.ssid_len = board_ssid.length();
         ok_wifi::stringToUint(wifi_config.ap.ssid, board_ssid);
         ok_wifi::stringToUint(wifi_config.ap.password, board_pwd);
@@ -99,6 +100,9 @@ namespace ok_wifi {
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
+        
+        ESP_ERROR_CHECK(esp_wifi_disable_pmf_config(WIFI_IF_AP));
+
         ESP_ERROR_CHECK(esp_wifi_start());
 
         ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",

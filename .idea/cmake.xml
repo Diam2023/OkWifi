@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="CMakeSharedSettings">
-    <configurations>
-      <configuration PROFILE_NAME="Debug-WIN_ESP-IDF" ENABLED="true" GENERATION_DIR="build" CONFIG_NAME="Debug" TOOLCHAIN_NAME="WIN_ESP-IDF" BUILD_OPTIONS="-j 10" />
-    </configurations>
-  </component>
-</project>
