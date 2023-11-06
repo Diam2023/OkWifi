@@ -34,6 +34,7 @@ namespace ok_wifi {
             xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
         }
     }
+        char err_msg[1024];
 
     void ProvClient::init() {
         using namespace std::chrono_literals;
@@ -49,7 +50,6 @@ namespace ok_wifi {
         }
         net = esp_netif_create_default_wifi_sta();
         esp_netif_dhcpc_start(net);
-
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -68,16 +68,24 @@ namespace ok_wifi {
         bzero(&wifi_config, sizeof(wifi_config_t));
         ok_wifi::stringToUint(wifi_config.sta.ssid, server_ssid);
         ok_wifi::stringToUint(wifi_config.sta.password, server_pwd);
+        ESP_LOGI(TAG, "Prepare To Connect ProvServer SSID: %s PWD: %s", wifi_config.sta.ssid, wifi_config.sta.password);
         wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-        wifi_config.sta.pmf_cfg.required = false;
-        wifi_config.sta.channel = 6;
-
+        // wifi_config.sta.pmf_cfg.capable = false;
+        // wifi_config.sta.pmf_cfg.required = false;
+        wifi_config.sta.channel = 6; 
+// wifi:Affected by the ESP-NOW encrypt num, set the max connection num to 10
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
+        ESP_ERROR_CHECK(esp_wifi_disable_pmf_config(WIFI_IF_STA));
 
         ESP_ERROR_CHECK(esp_wifi_start());
-        esp_wifi_connect();
+        auto res = esp_wifi_connect();
+        // ESP_ERR_WIFI_CONN eerr
+        bzero(err_msg, 1024);
+        esp_err_to_name_r(res, err_msg, 1024);
+        ESP_LOGE(TAG, "err res: %s", err_msg);
+
         ESP_LOGI(TAG, "wifi_init_sta finished.");
     }
 
@@ -102,10 +110,10 @@ namespace ok_wifi {
     ClientProvResult ProvClient::waitWifiConnect() {
         using namespace std::chrono_literals;
         ESP_LOGI(TAG, "wifi wait bit.");
-        int outOfDateCounter = outOfDate;
+        int outOfDateCounter = provServerOutOfDate;
         while (true) {
-            std::this_thread::sleep_for(1ms);
             if (outOfDateCounter <= 0) {
+                ESP_LOGE(TAG, "请检查热点最大支持个数");
                 return ClientProvResult::ProvOutOfDate;
             }
 
@@ -124,12 +132,16 @@ namespace ok_wifi {
                 ESP_LOGI(TAG, "Failed to connect to ProvServer");
                 return ClientProvResult::ProvConnectFailed;
             } else {
-                ESP_LOGW(TAG, "UNEXPECTED EVENT");
+                ESP_LOGW(TAG, "UNEXPECTED EVENT Start Reconnect");
                 outOfDateCounter--;
                 esp_wifi_disconnect();
                 std::this_thread::sleep_for(1s);
                 esp_wifi_connect();
+                ESP_LOGW(TAG, "Reconnecting!!! For Wait 15s");
+                std::this_thread::sleep_for(15s);
+
             }
+            std::this_thread::sleep_for(1ms);
         }
         ESP_LOGI(TAG, "end wait bit.");
     }
@@ -147,7 +159,7 @@ namespace ok_wifi {
         int s, r;
         char recv_buf[64];
 
-        int retryCounter = outOfDate;
+        int retryCounter = provServerOutOfDate;
         while (true) {
 
             int err = getaddrinfo(server.c_str(), port.c_str(), &hints, &res);

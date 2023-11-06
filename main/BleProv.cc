@@ -57,7 +57,7 @@ namespace ok_wifi {
                 result.setResult(ProvResultStatus::ResError);
             }
         } else {
-            ESP_LOGI(TAG, "Prov Wifi Error!");
+            ESP_LOGW(TAG, "BleProv Exit!");
             result.setResult(ProvResultStatus::ResError);
         }
     }
@@ -95,9 +95,7 @@ namespace ok_wifi {
         }
         // TODO Resolve Auto Stop Question
         wifi_prov_mgr_reset_provisioning();
-
         wifi_prov_mgr_deinit();
-
         esp_wifi_disconnect();
         esp_wifi_stop();
         esp_wifi_restore();
