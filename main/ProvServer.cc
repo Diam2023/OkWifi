@@ -72,6 +72,7 @@ namespace ok_wifi {
             netPtr = nullptr;
         }
         netPtr = esp_netif_create_default_wifi_ap();
+        ESP_LOGW(TAG, "Server Init");
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         esp_wifi_init(&cfg);
@@ -101,7 +102,7 @@ namespace ok_wifi {
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
         ESP_ERROR_CHECK(esp_wifi_start());
 
-        ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
+        ESP_LOGI(TAG, "Server Start finished. SSID:%s password:%s channel:%d",
                  board_ssid.c_str(), board_pwd.c_str(), 6);
 
         // start httpd

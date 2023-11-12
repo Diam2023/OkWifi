@@ -30,10 +30,7 @@ extern "C" _Noreturn void app_main() {
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        /* NVS partition was truncated
-         * and needs to be erased */
         ESP_ERROR_CHECK(nvs_flash_erase());
-        /* Retry nvs_flash_init */
         ESP_ERROR_CHECK(nvs_flash_init());
     }
 
@@ -41,9 +38,6 @@ extern "C" _Noreturn void app_main() {
     ESP_ERROR_CHECK(esp_netif_init());
 
     esp_event_loop_create_default();
-
-    /* Initialize Wi-Fi including netif with default config */
-    //    esp_netif_create_default_wifi_sta();
 
     auto led = idf::GPIO_Output(idf::GPIONum(13));
     auto led_status = false;
@@ -70,10 +64,6 @@ extern "C" _Noreturn void app_main() {
 
     ok_wifi::OkWifi::getInstance().init();
 
-//    if ((*ok_wifi::OkWifi::getInstance()).joinable()) {
-//        ESP_LOGI(TAG, "Wait Prov Complete!");
-//        (*ok_wifi::OkWifi::getInstance()).join();
-//    }
     ok_wifi::OkWifi::getInstance().join();
     ESP_LOGI(TAG, "Wait Prov Complete!");
 

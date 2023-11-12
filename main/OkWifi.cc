@@ -70,13 +70,15 @@ namespace ok_wifi {
                             BleProv::getInstance().stop();
                             continue;
                         } else {
-//                            ESP_LOGE(TAG, "Error for Prov");
+                            ESP_LOGE(TAG, "Error for Prov");
+                            // Restart Prov
                             std::this_thread::sleep_for(3s);
                         }
                     }
 
+                    // ERROR Handler
                     // Resolve conflict when run wifi prov and scan action
-                    wifi_prov_sta_fail_reason_t reason;
+                    static wifi_prov_sta_fail_reason_t reason;
                     if (wifi_prov_mgr_get_wifi_disconnect_reason(&reason) == ESP_OK) {
                         // Restart
 //                        ESP_LOGI(TAG, "Restart BleProv");
@@ -85,6 +87,16 @@ namespace ok_wifi {
                     }
 
                     std::this_thread::sleep_for(5s);
+                    static wifi_prov_sta_state_t state;
+                    if (wifi_prov_mgr_get_wifi_state(&state) == ESP_OK)
+                    {
+                        if (state == WIFI_PROV_STA_CONNECTING || state == WIFI_PROV_STA_CONNECTED)
+                        {
+                            // Accepted
+                            ESP_LOGW(TAG, "Wifi PROV Accepted");
+                            continue;
+                        }
+                    }
                     try {
                         ESP_LOGI(TAG, "Scan once wait for 1s");
                         if (ProvServerScanner::getInstance().scanOnce(1s)) {
@@ -102,7 +114,6 @@ namespace ok_wifi {
                             esp_wifi_disconnect();
                             esp_wifi_connect();
                             // Stop Scan When Ble Received Prov Message
-//                            ESP_LOGI(TAG, "Reconnect Prov Wait");
                             std::this_thread::sleep_for(20s);
                         }
                     }
@@ -155,10 +166,7 @@ namespace ok_wifi {
                     }
                     break;
                 case OkWifiStartMode::ModeWaitServerCompleted:
-
-                    ESP_LOGI(TAG, "Waiting ProvServer!");
                     ProvServer::getInstance().waitCompleted();
-                    ESP_LOGI(TAG, "Wait ProvServer Completed!");
                     nowMode = OkWifiStartMode::ModeCompleted;
                     break;
                 case OkWifiStartMode::ModeCompleted:

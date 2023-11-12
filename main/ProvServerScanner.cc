@@ -117,7 +117,7 @@ namespace ok_wifi {
             timeout--;
             if (timeout <= 0) {
                 throw idf::event::EventException(ESP_ERR_TIMEOUT);
-                return false;
+//                return false;
             }
             std::this_thread::sleep_for(1s);
             if (found_flag) {
