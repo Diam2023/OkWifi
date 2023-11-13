@@ -5,4 +5,4 @@ managed_components
 *.log
 workspace.xml
 *~
-
+.idea
