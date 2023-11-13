@@ -18,35 +18,55 @@ namespace ok_wifi {
     static esp_err_t prov_get_handler(httpd_req_t *req) {
         const char *resp_str = (const char *) req->user_ctx;
         httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
-
-        /* After sending the HTTP response the old HTTP request
-         * headers are lost. Check if HTTP request headers can be read now. */
-        if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
-            ESP_LOGI(TAG, "Request headers lost");
-        }
         return ESP_OK;
     }
 
     void ProvServer::run() {
         using namespace std::chrono_literals;
 
-        int outOfDateCounter = outOfDate;
+        // 在firstWaitTime内以1s一次检测是否有AP连接
+        // 有客户端连接后以outOfDate为间隔检查一次是否还有客户端连接中
+        // 当没有检测到有客户端存在并经过outOfDate时间时即结束服务器
+        auto firstConnection = false;
+        auto firstTimeCounter = firstWaitTime;
+        auto outOfDateCounter = outOfDate;
+        static wifi_sta_list_t sta;
 
         while (true) {
-            outOfDateCounter--;
             std::this_thread::sleep_for(1s);
-            if (outOfDateCounter <= 0) {
+            if (firstConnection) {
+                outOfDateCounter -= 1s;
+            } else {
+                firstTimeCounter -= 1s;
+            }
 
-                wifi_sta_list_t sta;
-                esp_wifi_ap_get_sta_list(&sta);
-                if (sta.num <= 0) {
-                    break;
+            esp_wifi_ap_get_sta_list(&sta);
+            if (sta.num > 0) {
+                // 有活动连接
+                // 先检查是不是第一次检测到
+                if (!firstConnection) {
+                    // 第一次检测到客户端 则标记
+                    firstConnection = true;
                 } else {
-                    ESP_LOGI(TAG, "OutOfDate Check Circle!");
-                    outOfDateCounter += outOfDate;
+                    // 并不是第一次检测到客户端
+                    // 重置生命周期满
+                    outOfDateCounter = outOfDate;
                 }
             }
+
+            // 当没有一个客户端连接并且第一次等待时间超时 关闭服务器
+            if (!firstConnection && (firstTimeCounter <= 0s)) {
+                break;
+            }
+
+            // 当所有客户端断开连接则关闭服务器
+            if (firstConnection && (outOfDateCounter <= 0s)) {
+                break;
+            }
+
         }
+
+        // 停止配网服务器
         stop();
     }
 
@@ -62,13 +82,13 @@ namespace ok_wifi {
                      event->mac, event->aid);
         }
     }
+
     static esp_event_handler_instance_t instance_any_id;
 
     void ProvServer::init() {
         ESP_LOGI(TAG, "Init");
 
-        if (netPtr != nullptr)
-        {
+        if (netPtr != nullptr) {
             esp_netif_destroy_default_wifi(netPtr);
             netPtr = nullptr;
         }
@@ -84,7 +104,7 @@ namespace ok_wifi {
 
         wifi_config_t wifi_config{};
         bzero(&wifi_config, sizeof(wifi_config_t));
-        
+
         wifi_config.ap.channel = 6;
         wifi_config.ap.max_connection = 20;
         wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
@@ -101,7 +121,7 @@ namespace ok_wifi {
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
-        
+
         ESP_ERROR_CHECK(esp_wifi_disable_pmf_config(WIFI_IF_AP));
 
         ESP_ERROR_CHECK(esp_wifi_start());
@@ -141,4 +161,5 @@ namespace ok_wifi {
             thread.join();
         }
     }
+
 }
