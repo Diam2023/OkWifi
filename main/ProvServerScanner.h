@@ -32,6 +32,11 @@ namespace ok_wifi {
 
     public:
 
+        /**
+         * 扫描一次
+         * @param sec 超时时间
+         * @return 返回是否检查到配网服务器
+         */
         bool scanOnce(std::chrono::seconds sec = 1s);
 
         [[nodiscard]] const std::string &getServerSsid() const;

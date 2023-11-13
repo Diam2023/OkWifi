@@ -4,7 +4,6 @@
 
 #include "ProvServer.h"
 
-#include <utility>
 #include <esp_wifi_default.h>
 #include <esp_wifi.h>
 #include <cstring>
@@ -54,11 +53,11 @@ namespace ok_wifi {
     static void wifi_event_handler(void *arg, esp_event_base_t event_base,
                                    int32_t event_id, void *event_data) {
         if (event_id == WIFI_EVENT_AP_STACONNECTED) {
-            wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *) event_data;
+            auto *event = (wifi_event_ap_staconnected_t *) event_data;
             ESP_LOGI(TAG, "station %s join, AID=%d",
                      event->mac, event->aid);
         } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
-            wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t *) event_data;
+            auto *event = (wifi_event_ap_stadisconnected_t *) event_data;
             ESP_LOGI(TAG, "station %s leave, AID=%d",
                      event->mac, event->aid);
         }
@@ -66,6 +65,8 @@ namespace ok_wifi {
     static esp_event_handler_instance_t instance_any_id;
 
     void ProvServer::init() {
+        ESP_LOGI(TAG, "Init");
+
         if (netPtr != nullptr)
         {
             esp_netif_destroy_default_wifi(netPtr);
@@ -105,7 +106,7 @@ namespace ok_wifi {
 
         ESP_ERROR_CHECK(esp_wifi_start());
 
-        ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
+        ESP_LOGI(TAG, "Server Start SSID:%s password:%s channel:%d",
                  board_ssid.c_str(), board_pwd.c_str(), 6);
 
         // start httpd
@@ -120,10 +121,8 @@ namespace ok_wifi {
         prov.user_ctx = (void *) responseJson.c_str();
 
         // Start the httpd server
-        ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
         ESP_ERROR_CHECK(httpd_start(&server, &config));
         // Set URI handlers
-        ESP_LOGI(TAG, "Registering URI handlers");
         ESP_ERROR_CHECK(httpd_register_uri_handler(server, &prov));
         thread = std::thread(&ProvServer::run, this);
     }
