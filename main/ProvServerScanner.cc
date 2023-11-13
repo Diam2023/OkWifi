@@ -21,6 +21,9 @@ namespace ok_wifi {
     static const char *TAG = "ProvServerScanner";
 
     void ProvServerScanner::init() {
+
+        ESP_LOGI(TAG, "Init");
+
         scan_net = esp_netif_create_default_wifi_sta();
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -33,6 +36,7 @@ namespace ok_wifi {
     }
 
     bool ProvServerScanner::scanOnce(std::chrono::seconds sec) {
+        ESP_LOGI(TAG, "Scan Server");
         memset(ap_info, 0, sizeof(ap_info));
         auto ret = esp_wifi_scan_start(nullptr, true);
         if (ret == ESP_ERR_WIFI_STATE) {
@@ -42,12 +46,10 @@ namespace ok_wifi {
         esp_wifi_scan_get_ap_records(&number, ap_info);
         esp_wifi_scan_get_ap_num(&ap_count);
 
-        ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
         for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
             std::string scanSsid = reinterpret_cast<char *>(ap_info[i].ssid);
             if (scanSsid == this->server_ssid) {
                 // connect it;
-                ESP_LOGI(TAG, "Found Prov Wifi %s Wait to connect to Prov", scanSsid.c_str());
                 return true;
             }
         }
@@ -91,7 +93,7 @@ namespace ok_wifi {
         if (thread.joinable()) {
             thread.join();
         }
-        ESP_LOGW(TAG, "Deinit Scanner!!");
+        ESP_LOGW(TAG, "Deinit");
         esp_wifi_clear_ap_list();
         esp_wifi_scan_stop();
         esp_wifi_stop();

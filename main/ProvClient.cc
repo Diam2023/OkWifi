@@ -34,9 +34,12 @@ namespace ok_wifi {
             xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
         }
     }
-        char err_msg[1024];
+
+    char err_msg[1024];
 
     void ProvClient::init() {
+        ESP_LOGI(TAG, "Init");
+
         using namespace std::chrono_literals;
         if (wifi_event_group != nullptr) {
             vEventGroupDelete(wifi_event_group);
@@ -72,8 +75,7 @@ namespace ok_wifi {
         wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK;
         // wifi_config.sta.pmf_cfg.capable = false;
         // wifi_config.sta.pmf_cfg.required = false;
-        wifi_config.sta.channel = 6; 
-// wifi:Affected by the ESP-NOW encrypt num, set the max connection num to 10
+        wifi_config.sta.channel = 6;
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
@@ -81,16 +83,18 @@ namespace ok_wifi {
 
         ESP_ERROR_CHECK(esp_wifi_start());
         auto res = esp_wifi_connect();
-        // ESP_ERR_WIFI_CONN eerr
-        bzero(err_msg, 1024);
-        esp_err_to_name_r(res, err_msg, 1024);
-        ESP_LOGE(TAG, "err res: %s", err_msg);
+        if (res != ESP_OK) {
+            // ESP_ERR_WIFI_CONN err
+            bzero(err_msg, 1024);
+            esp_err_to_name_r(res, err_msg, 1024);
+            ESP_LOGE(TAG, "err res: %s", err_msg);
 
-        ESP_LOGI(TAG, "wifi_init_sta finished.");
+            ESP_LOGI(TAG, "wifi_init_sta finished.");
+        }
     }
 
     void ProvClient::deinit() {
-        ESP_LOGW(TAG, "ProvClient going down!");
+        ESP_LOGW(TAG, "Deinit");
         esp_event_handler_unregister(WIFI_EVENT,
                                      ESP_EVENT_ANY_ID,
                                      &event_handler);
@@ -109,17 +113,17 @@ namespace ok_wifi {
 
     ClientProvResult ProvClient::waitWifiConnect() {
         using namespace std::chrono_literals;
-        ESP_LOGI(TAG, "wifi wait bit.");
+        ESP_LOGI(TAG, "Wait WIFI bit.");
         int outOfDateCounter = provServerOutOfDate;
+        static auto result = ClientProvResult::ProvOutOfDate;
+
         while (true) {
             if (outOfDateCounter <= 0) {
                 ESP_LOGE(TAG, "请检查热点最大支持个数");
-                return ClientProvResult::ProvOutOfDate;
+                result = ClientProvResult::ProvOutOfDate;
+                break;
             }
 
-            /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
-             * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
-             * The bits are set by event_handler() (see above) */
             EventBits_t bits = xEventGroupWaitBits(wifi_event_group,
                                                    WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                                    false,
@@ -127,23 +131,25 @@ namespace ok_wifi {
                                                    5000 / portTICK_PERIOD_MS);
             if (bits & WIFI_CONNECTED_BIT) {
                 ESP_LOGI(TAG, "Connected to Prov Server");
-                return ClientProvResult::ProvConnected;
+                result = ClientProvResult::ProvConnected;
+                break;
             } else if (bits & WIFI_FAIL_BIT) {
                 ESP_LOGI(TAG, "Failed to connect to ProvServer");
-                return ClientProvResult::ProvConnectFailed;
+                result = ClientProvResult::ProvConnectFailed;
+                break;
             } else {
                 ESP_LOGW(TAG, "UNEXPECTED EVENT Start Reconnect");
                 outOfDateCounter--;
                 esp_wifi_disconnect();
                 std::this_thread::sleep_for(1s);
                 esp_wifi_connect();
-                ESP_LOGW(TAG, "Reconnecting!!! For Wait 15s");
-                std::this_thread::sleep_for(15s);
-
+                ESP_LOGW(TAG, "Reconnecting!!! For Wait 5s");
+                std::this_thread::sleep_for(5s);
             }
             std::this_thread::sleep_for(1ms);
         }
-        ESP_LOGI(TAG, "end wait bit.");
+        ESP_LOGI(TAG, "End wait bit.");
+        return result;
     }
 
     bool ProvClient::sendRequest() {
@@ -240,7 +246,6 @@ namespace ok_wifi {
                     jsonData = recv_buf;
                 }
                 line++;
-//                ESP_LOGI(TAG, "line %d DATA: %s", line, recv_buf);
             } while (r > 0);
 
             ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
@@ -258,9 +263,8 @@ namespace ok_wifi {
 
             ESP_LOGI(TAG, "JSON Data: %s", jsonData.c_str());
 
-            // TODO Get Prov SSID And PWD
-
-//            this->prov_ssid =
+            ESP_LOGI(TAG, "Request Successful!");
+            ESP_LOGI(TAG, "Result: ssid: [%s] pwd: [%s]", getProvSsid().c_str(), getProvPwd().c_str());
             break;
         }
 

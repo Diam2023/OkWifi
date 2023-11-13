@@ -23,7 +23,7 @@ namespace ok_wifi {
     static const char *DEFAULT_PROV_SSID = "Default_OkWifi";
     static const char *DEFAULT_PROV_PWD = "Default_OkWifi";
 
-
+    // TODO 增加初次配网服务器接收响应的等待时间
     class ProvServer {
     private:
         std::string board_ssid;
