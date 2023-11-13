@@ -19,11 +19,11 @@
 
 
 namespace ok_wifi {
+    using namespace std::chrono_literals;
 
     static const char *DEFAULT_PROV_SSID = "Default_OkWifi";
     static const char *DEFAULT_PROV_PWD = "Default_OkWifi";
 
-    // TODO 增加初次配网服务器接收响应的等待时间
     class ProvServer {
     private:
         std::string board_ssid;
@@ -44,14 +44,28 @@ namespace ok_wifi {
         // start thread
         void run();
 
-        // close after 200s
-        int outOfDate = 200;
+        // 启动服务器的第一次等待时间
+        std::chrono::seconds firstWaitTime;
+
+        // 检查客户端活动生命检查周期
+        std::chrono::seconds outOfDate;
+
     public:
-        [[nodiscard]] int getOutOfDate() const {
+
+        [[nodiscard]] const std::chrono::seconds &getFirstWaitTime() const {
+            return firstWaitTime;
+        }
+
+        void setFirstWaitTime(const std::chrono::seconds &time) {
+            ProvServer::firstWaitTime = time;
+
+        }
+
+        [[nodiscard]] const std::chrono::seconds &getOutOfDate() const {
             return outOfDate;
         }
 
-        void setOutOfDate(int nums) {
+        void setOutOfDate(std::chrono::seconds &nums) {
             ProvServer::outOfDate = nums;
         }
 
@@ -88,7 +102,9 @@ namespace ok_wifi {
             board_pwd = boardPwd;
         }
 
-        ProvServer() : board_ssid(DEFAULT_PROV_SSID), board_pwd(DEFAULT_PROV_PWD) {};
+
+        ProvServer() : board_ssid(DEFAULT_PROV_SSID), board_pwd(DEFAULT_PROV_PWD), firstWaitTime(100s),
+                       outOfDate(10s) {};
 
         void stop();
 

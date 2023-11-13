@@ -79,9 +79,6 @@ namespace ok_wifi {
                     if (BleProv::getInstance().wait(1)) {
                         // 有结果
                         switch (res_.getResult()) {
-                            case ProvResultStatus::ResUnknown:
-                                // 未知状态/默认状态
-                                break;
                             case ProvResultStatus::ResOk:
                                 // 蓝牙配网成功
                                 // 转换模式为 作为配网服务器 分发配网消息给客户端
@@ -92,19 +89,21 @@ namespace ok_wifi {
 
                                 // 进入配网服务器状态
                                 continue;
+                            case ProvResultStatus::ResUnknown:
+                                // 未知状态/默认状态
+                                [[fallthrough]];
                             case ProvResultStatus::ResError:
-                                // 蓝牙配网错误，清除配网失败标志重启蓝牙配网
-//                                ESP_LOGE(TAG, "Error for BleProv");
-//                                ESP_LOGE(TAG, "Restart");
-                                // 停止蓝牙配网 释放空间
-                                std::this_thread::sleep_for(3s);
+                                // 蓝牙配网超时
+                                // std::this_thread::sleep_for(1s);
                                 // 再次开始蓝牙配网
+                                [[fallthrough]];
+                            default:
                                 break;
                         }
                     }
 
                     // 配网没有结果/等待响应超时
-                    std::this_thread::sleep_for(5s);
+                    std::this_thread::sleep_for(1s);
 
                     static wifi_prov_sta_state_t state;
                     // 获取配网状态
@@ -168,7 +167,6 @@ namespace ok_wifi {
                     prov_pwd_res = res_.getPwd();
 
                     // 设定检查客户端活动周期的时间
-                    ProvServer::getInstance().setOutOfDate(provServerLifeTime);
                     ProvServer::getInstance().init();
 
                     // 进入等待服务器生命结束状态

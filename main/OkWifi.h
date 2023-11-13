@@ -38,19 +38,7 @@ namespace ok_wifi {
 
         OkWifiStartMode nowMode;
 
-        /**
-         * ProvServer Wait time
-         */
-        int provServerLifeTime = 100;
     public:
-
-        [[nodiscard]] int getProvServerLifeTime() const {
-            return provServerLifeTime;
-        }
-
-        void setProvServerLifeTime(int provServerLifeTime_) {
-            OkWifi::provServerLifeTime = provServerLifeTime_;
-        }
 
         [[nodiscard]] const std::string &getProvSsidRes() const;
 
