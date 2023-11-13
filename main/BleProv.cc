@@ -16,7 +16,7 @@ namespace ok_wifi {
     static const char *TAG = "BleProv";
 
     BleProv::BleProv()
-            : thread(), result(ProvStatus::ProvPrepare, ""), serviceName("WaterBox_Device"), net(nullptr),
+            : thread(), result(""), serviceName("WaterBox_Device"), net(nullptr),
               provTimeout(200s) {
         result.setResult(ProvResultStatus::ResUnknown);
     }
@@ -44,7 +44,6 @@ namespace ok_wifi {
 
         // 开始配网
         wifi_prov_mgr_start_provisioning(security, nullptr, service_name, nullptr);
-        result.setStatus(ProvStatus::ProvWaiting);
 
         // 指示变量
         bool provisioned = false;

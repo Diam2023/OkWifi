@@ -13,18 +13,7 @@
 
 namespace ok_wifi {
 
-    // TODO To Write Process!
-    enum class ProvStatus {
-        ProvPrepare, // Preparing to prov
-        ProvWaiting, // Waiting for Prov
-        ProvReceived, // Received Signal
-        ProvClosed, // Closed From Prover
-        ProvConnectFailed, // SSID Not found Or WifiError
-        ProvUnknownError, // unknown error
-    };
-
-    enum class ProvResultStatus
-    {
+    enum class ProvResultStatus {
         ResUnknown,
         ResOk,
         ResError // Timeout
@@ -35,11 +24,6 @@ namespace ok_wifi {
      */
     class ProvResult {
     private:
-        /**
-         * Prov Status
-         */
-        ProvStatus status;
-
         /**
          * Result Message
          */
@@ -63,14 +47,6 @@ namespace ok_wifi {
 
         void setResult(ProvResultStatus result_) {
             ProvResult::result = result_;
-        }
-
-        [[nodiscard]] ProvStatus getStatus() const {
-            return status;
-        }
-
-        void setStatus(ProvStatus provStatus) {
-            ProvResult::status = provStatus;
         }
 
         [[nodiscard]] const std::string &getResultMessage() const {
@@ -99,13 +75,12 @@ namespace ok_wifi {
 
         /**
          * Construct a new object
-         * @param status_ status for result
          * @param message_ message for result
          * @param ssid_ ssid of wifi from prov
          * @param pwd_ pwd of wifi from prov
          */
-        ProvResult(const ProvStatus status_, std::string message_, std::string ssid_ = "",
-                   std::string pwd_ = "") : status(status_), resultMessage(std::move(message_)), ssid(std::move(ssid_)),
+        explicit ProvResult(std::string message_, std::string ssid_ = "",
+                   std::string pwd_ = "") : resultMessage(std::move(message_)), ssid(std::move(ssid_)),
                                             pwd(std::move(pwd_)), result(ProvResultStatus::ResUnknown) {};
     };
 
@@ -147,8 +122,7 @@ namespace ok_wifi {
 
         ProvResult &getProvResult();
 
-        static BleProv& getInstance()
-        {
+        static BleProv &getInstance() {
             static BleProv prov;
             return prov;
         }
