@@ -27,7 +27,7 @@ namespace ok_wifi {
     {
         ResUnknown,
         ResOk,
-        ResError
+        ResError // Timeout
     };
 
     /**
@@ -39,6 +39,7 @@ namespace ok_wifi {
          * Prov Status
          */
         ProvStatus status;
+
         /**
          * Result Message
          */
@@ -118,12 +119,20 @@ namespace ok_wifi {
 
         esp_netif_obj *net;
 
+        std::chrono::seconds provTimeout;
+
+        bool exitSignal = false;
     public:
         BleProv();
 
         void init();
 
         void stop();
+
+        /**
+         * 重启配网
+         */
+        void restart();
 
         /**
          * Timeout for waiting
