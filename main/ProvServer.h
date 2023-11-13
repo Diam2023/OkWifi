@@ -65,7 +65,7 @@ namespace ok_wifi {
             return outOfDate;
         }
 
-        void setOutOfDate(std::chrono::seconds &nums) {
+        void setOutOfDate(const std::chrono::seconds &nums) {
             ProvServer::outOfDate = nums;
         }
 
