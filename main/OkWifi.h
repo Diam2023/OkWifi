@@ -38,6 +38,15 @@ namespace ok_wifi {
 
         OkWifiStartMode nowMode;
 
+        /**
+         * 外部停止信号
+         */
+        bool stopSignal;
+
+        /**
+         * 线程存活状态
+         */
+        volatile bool threadStatus;
     public:
 
         [[nodiscard]] const std::string &getProvSsidRes() const;
@@ -56,7 +65,9 @@ namespace ok_wifi {
 
         void init();
 
-        void deinit();
+        void waitExit();
+
+        bool checkExit();
 
         OkWifiStartMode getStatus() {
             return nowMode;
@@ -70,6 +81,11 @@ namespace ok_wifi {
             static OkWifi instance;
             return instance;
         };
+
+        /**
+         * 强制停止配网
+         */
+        void stop();
     };
 
 } // OKWIFI

@@ -49,3 +49,4 @@ bool wifi_prov_mgr_is_stopped()
 * [ ] Add Select Hide SSID Option
 * [ ] Add AP Select command for Server When Wifi Connection going full
 * [ ] Add Security module
+* [x] 强制停止

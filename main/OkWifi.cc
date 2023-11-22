@@ -18,7 +18,7 @@ namespace ok_wifi {
 
     static const char *TAG = "OkWifi";
 
-    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize) {
+    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize), stopSignal(false), threadStatus(false) {
     }
 
     void OkWifi::init() {
@@ -33,6 +33,8 @@ namespace ok_wifi {
     }
 
     void OkWifi::run() {
+        threadStatus = true;
+
         // 初始化扫描配网服务器 打开自动扫描器
         ProvServerScanner::getInstance().init();
         std::this_thread::sleep_for(2s);
@@ -46,11 +48,11 @@ namespace ok_wifi {
         // 获取蓝牙配网结果的实例指针
         auto &res_ = BleProv::getInstance().getProvResult();
 
-        // 初始化退出标记
+        // 初始化 线程退出标记
         bool exitFlag = false;
 
         while (true) {
-            // 检查退出标记
+            // 检查线程退出标记
             if (exitFlag) {
                 break;
             }
@@ -206,10 +208,11 @@ namespace ok_wifi {
                     break;
                 case OkWifiStartMode::ModeWaitServerCompleted:
                     // 等待服务器生命结束
-                    ProvServer::getInstance().waitCompleted();
-
-                    // 进入配网完成状态
-                    nowMode = OkWifiStartMode::ModeCompleted;
+                    ESP_LOGI(TAG, "Wait Server Count");
+                    if (ProvServer::getInstance().checkExit()) {
+                        // 进入配网完成状态
+                        nowMode = OkWifiStartMode::ModeCompleted;
+                    }
                     break;
                 case OkWifiStartMode::ModeCompleted:
                     // 状态机 结束状态
@@ -218,15 +221,41 @@ namespace ok_wifi {
                     break;
             }
 
+            // 退出信号处理
+            if (stopSignal) {
+                ESP_LOGW(TAG, "Stop Signal Received!!!");
+                ESP_LOGW(TAG, "Thread Going Down!");
+                std::this_thread::sleep_for(4s);
+
+                BleProv::getInstance().stop();
+                ProvServer::getInstance().stop();
+                ProvClient::getInstance().deinit();
+
+                ProvServer::getInstance().waitCompleted();
+
+                esp_event_loop_delete_default();
+
+                break;
+            }
+
+
             ESP_LOGI(TAG, "Mode Circle");
             std::this_thread::sleep_for(2s);
         }
         ESP_LOGI(TAG, "End Lifetime");
+        threadStatus = false;
     }
 
-    void OkWifi::deinit() {
-        join();
+    void OkWifi::waitExit() {
+        if (threadStatus) {
+            join();
+        }
     }
+
+    bool OkWifi::checkExit() {
+        return threadStatus;
+    }
+
 
     const std::string &OkWifi::getProvSsidRes() const {
         return prov_ssid_res;
@@ -236,4 +265,7 @@ namespace ok_wifi {
         return prov_pwd_res;
     }
 
+    void OkWifi::stop() {
+        stopSignal = true;
+    }
 }
