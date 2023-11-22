@@ -141,6 +141,11 @@ namespace ok_wifi {
 
     void BleProv::stop() {
         ESP_LOGW(TAG, "Stop");
+        if (exitSignal)
+        {
+            ESP_LOGW(TAG, "BleProv is still in stop");
+            return;
+        }
         exitSignal = true;
         wifi_prov_mgr_stop_provisioning();
         if (thread.joinable()) {

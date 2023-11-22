@@ -102,7 +102,10 @@ namespace ok_wifi {
                                      IP_EVENT_STA_GOT_IP,
                                      &event_handler);
         esp_wifi_stop();
-        esp_wifi_deinit();
+        try {
+            esp_wifi_deinit();
+        } catch (const std::exception &e) {
+        }
         esp_netif_destroy_default_wifi(net);
         net = nullptr;
         if (wifi_event_group != nullptr) {
