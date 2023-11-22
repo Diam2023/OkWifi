@@ -50,6 +50,13 @@ namespace ok_wifi {
         // 检查客户端活动生命检查周期
         std::chrono::seconds outOfDate;
 
+        // TODO 使用std封装
+        // 外部退出信号
+        volatile bool exitSignal;
+
+        // 线程退出信号
+        volatile bool threadStatus;
+
     public:
 
         [[nodiscard]] const std::chrono::seconds &getFirstWaitTime() const {
@@ -102,9 +109,12 @@ namespace ok_wifi {
             board_pwd = boardPwd;
         }
 
+        [[nodiscard]] bool checkExit() const {
+            return threadStatus;
+        }
 
         ProvServer() : board_ssid(DEFAULT_PROV_SSID), board_pwd(DEFAULT_PROV_PWD), firstWaitTime(100s),
-                       outOfDate(10s) {};
+                       outOfDate(10s), exitSignal(false), threadStatus(false) {};
 
         void stop();
 

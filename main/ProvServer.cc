@@ -23,6 +23,7 @@ namespace ok_wifi {
 
     void ProvServer::run() {
         using namespace std::chrono_literals;
+        threadStatus = false;
 
         // 在firstWaitTime内以1s一次检测是否有AP连接
         // 有客户端连接后以outOfDate为间隔检查一次是否还有客户端连接中
@@ -33,6 +34,12 @@ namespace ok_wifi {
         static wifi_sta_list_t sta;
 
         while (true) {
+            // 检查退出信号
+            if (exitSignal)
+            {
+                break;
+            }
+
             std::this_thread::sleep_for(1s);
             if (firstConnection) {
                 outOfDateCounter -= 1s;
@@ -67,7 +74,12 @@ namespace ok_wifi {
         }
 
         // 停止配网服务器
-        stop();
+        httpd_stop(server);
+        esp_wifi_stop();
+        esp_wifi_deinit();
+        esp_netif_destroy_default_wifi(netPtr);
+        threadStatus = true;
+        ESP_LOGW(TAG, "Httpd And Wifi Going Down!");
     }
 
     static void wifi_event_handler(void *arg, esp_event_base_t event_base,
@@ -148,12 +160,7 @@ namespace ok_wifi {
     }
 
     void ProvServer::stop() {
-        httpd_stop(server);
-        esp_wifi_stop();
-        esp_wifi_deinit();
-        esp_netif_destroy_default_wifi(netPtr);
-
-        ESP_LOGW(TAG, "Httpd And Wifi Going Down!");
+        exitSignal = true;
     }
 
     void ProvServer::waitCompleted() {
