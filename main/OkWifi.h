@@ -44,7 +44,7 @@ namespace ok_wifi {
         bool stopSignal;
 
         /**
-         * 线程存活状态
+         * 线程存活状态 true表示退出
          */
         volatile bool threadStatus;
     public:
@@ -67,6 +67,10 @@ namespace ok_wifi {
 
         void waitExit();
 
+        /**
+         * 检查OkWifi主线程是否退出
+         * @return true已经退出 false运行中
+         */
         bool checkExit();
 
         OkWifiStartMode getStatus() {

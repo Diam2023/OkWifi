@@ -76,8 +76,6 @@ extern "C" _Noreturn void app_main() {
     std::this_thread::sleep_for(10s);
 
     ok_wifi::OkWifi::getInstance().stop();
-//    ok_wifi::OkWifi::getInstance().waitExit();
-//    ok_wifi::OkWifi::getInstance().join();
 
     now_status = Status::Ending;
 

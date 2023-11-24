@@ -33,7 +33,7 @@ namespace ok_wifi {
     }
 
     void OkWifi::run() {
-        threadStatus = true;
+        threadStatus = false;
 
         // 初始化扫描配网服务器 打开自动扫描器
         ProvServerScanner::getInstance().init();
@@ -243,7 +243,7 @@ namespace ok_wifi {
             std::this_thread::sleep_for(2s);
         }
         ESP_LOGI(TAG, "End Lifetime");
-        threadStatus = false;
+        threadStatus = true;
     }
 
     void OkWifi::waitExit() {
@@ -255,7 +255,6 @@ namespace ok_wifi {
     bool OkWifi::checkExit() {
         return threadStatus;
     }
-
 
     const std::string &OkWifi::getProvSsidRes() const {
         return prov_ssid_res;
