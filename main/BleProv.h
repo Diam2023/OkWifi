@@ -80,8 +80,8 @@ namespace ok_wifi {
          * @param pwd_ pwd of wifi from prov
          */
         explicit ProvResult(std::string message_, std::string ssid_ = "",
-                   std::string pwd_ = "") : resultMessage(std::move(message_)), ssid(std::move(ssid_)),
-                                            pwd(std::move(pwd_)), result(ProvResultStatus::ResUnknown) {};
+                            std::string pwd_ = "") : resultMessage(std::move(message_)), ssid(std::move(ssid_)),
+                                                     pwd(std::move(pwd_)), result(ProvResultStatus::ResUnknown) {};
     };
 
     class BleProv {

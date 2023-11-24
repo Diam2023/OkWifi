@@ -164,7 +164,7 @@ namespace ok_wifi {
     }
 
     void BleProv::restart() {
-        ESP_LOGI(TAG, "Restart");
+        ESP_LOGW(TAG, "Restart");
         BleProv::stop();
         BleProv::init();
     }

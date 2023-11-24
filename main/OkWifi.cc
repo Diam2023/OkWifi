@@ -18,7 +18,7 @@ namespace ok_wifi {
 
     static const char *TAG = "OkWifi";
 
-    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize), stopSignal(false), threadStatus(false) {
+    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize), stopSignal(false), isThreadStopped(true) {
     }
 
     void OkWifi::init() {
@@ -33,7 +33,7 @@ namespace ok_wifi {
     }
 
     void OkWifi::run() {
-        threadStatus = false;
+        isThreadStopped = false;
 
         // 初始化扫描配网服务器 打开自动扫描器
         ProvServerScanner::getInstance().init();
@@ -243,17 +243,17 @@ namespace ok_wifi {
             std::this_thread::sleep_for(2s);
         }
         ESP_LOGI(TAG, "End Lifetime");
-        threadStatus = true;
+        isThreadStopped = true;
     }
 
     void OkWifi::waitExit() {
-        if (threadStatus) {
+        if (!isThreadStopped) {
             join();
         }
     }
 
     bool OkWifi::checkExit() {
-        return threadStatus;
+        return isThreadStopped;
     }
 
     const std::string &OkWifi::getProvSsidRes() const {
