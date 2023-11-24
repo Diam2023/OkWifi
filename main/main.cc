@@ -22,6 +22,7 @@
 #include <esp_wifi_default.h>
 #include <esp_wifi.h>
 #include <wifi_provisioning/scheme_ble.h>
+#include <esp_timer_cxx.hpp>
 
 
 // ms s us
@@ -73,9 +74,15 @@ extern "C" _Noreturn void app_main() {
 
     ok_wifi::OkWifi::getInstance().init();
 
-    std::this_thread::sleep_for(10s);
+    std::this_thread::sleep_for(5s);
+    ok_wifi::OkWifi::getInstance().waitExit();
 
-    ok_wifi::OkWifi::getInstance().stop();
+    auto s = idf::esp_timer::ESPTimer([]() {
+        if (!ok_wifi::OkWifi::getInstance().checkExit()) {
+            ok_wifi::OkWifi::getInstance().stop();
+        }
+    });
+    s.start(100s);
 
     now_status = Status::Ending;
 

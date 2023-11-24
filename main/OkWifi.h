@@ -44,9 +44,9 @@ namespace ok_wifi {
         bool stopSignal;
 
         /**
-         * 线程存活状态 true表示退出
+         * 线程是否退出
          */
-        volatile bool threadStatus;
+        volatile bool isThreadStopped;
     public:
 
         [[nodiscard]] const std::string &getProvSsidRes() const;
