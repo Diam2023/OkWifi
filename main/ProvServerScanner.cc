@@ -22,6 +22,8 @@ namespace ok_wifi {
 
     void ProvServerScanner::init() {
 
+        stop_scan_signal = false;
+
         ESP_LOGI(TAG, "Init");
 
         scan_net = esp_netif_create_default_wifi_sta();
