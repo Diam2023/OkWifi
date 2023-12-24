@@ -3,7 +3,6 @@
 ## Version
 * ESP-IDF: v5.2 
 
-
 ## Notice
 当使用配网的SSID与PWD进行配网，
 失败时需要调用`wifi_prov_mgr_reset_sm_state_for_reprovision()`以及
@@ -50,3 +49,4 @@ bool wifi_prov_mgr_is_stopped()
 * [ ] Add AP Select command for Server When Wifi Connection going full
 * [ ] Add Security module
 * [x] 强制停止
+* [ ] Add Verify Option for wifi
