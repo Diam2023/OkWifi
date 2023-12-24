@@ -12,8 +12,6 @@
 #include <esp_wifi_default.h>
 #include "gpio_cxx.hpp"
 
-#include "wifi_provisioning/manager.h"
-#include "ProvServer.h"
 #include "OkWifi.h"
 
 
@@ -23,6 +21,10 @@
 #include <esp_wifi.h>
 #include <wifi_provisioning/scheme_ble.h>
 #include <esp_timer_cxx.hpp>
+
+
+#include "WifiProv.h"
+#include "ProvServerScanner.h"
 
 
 // ms s us
@@ -38,6 +40,8 @@ static const char *TAG = "Main";
  */
 extern "C" _Noreturn void app_main() {
     // Initialize NVS
+    std::cout << "S1" << std::endl;
+
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -46,6 +50,9 @@ extern "C" _Noreturn void app_main() {
 
     /* Initialize TCP/IP */
     ESP_ERROR_CHECK(esp_netif_init());
+    // esp_netif_init();
+
+    std::cout << "S2" << std::endl;
 
     esp_event_loop_create_default();
 
@@ -74,15 +81,24 @@ extern "C" _Noreturn void app_main() {
 
     ok_wifi::OkWifi::getInstance().init();
 
-    std::this_thread::sleep_for(5s);
+    // ok_wifi::ProvServerScanner::getInstance().init();
+
+    // std::this_thread::sleep_for(5s);
     ok_wifi::OkWifi::getInstance().waitExit();
 
-    auto s = idf::esp_timer::ESPTimer([]() {
-        if (!ok_wifi::OkWifi::getInstance().checkExit()) {
-            ok_wifi::OkWifi::getInstance().stop();
-        }
-    });
-    s.start(100s);
+    // ok_wifi::ProvServerScanner::getInstance().deinit();
+
+    // std::this_thread::sleep_for(2s);
+
+    // ok_wifi::WifiProv::getInstance().init();
+
+
+//    auto s = idf::esp_timer::ESPTimer([]() {
+//        if (!ok_wifi::OkWifi::getInstance().checkExit()) {
+//            ok_wifi::OkWifi::getInstance().stop();
+//        }
+//    });
+//    s.start(100s);
 
     now_status = Status::Ending;
 

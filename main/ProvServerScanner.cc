@@ -11,6 +11,8 @@
 #include <esp_event_cxx.hpp>
 #include <esp_timer_cxx.hpp>
 #include <esp_wps.h>
+#include <esp_err.h>
+
 
 namespace ok_wifi {
 
@@ -41,17 +43,20 @@ namespace ok_wifi {
         ESP_LOGI(TAG, "Scan Server");
         memset(ap_info, 0, sizeof(ap_info));
         auto ret = esp_wifi_scan_start(nullptr, true);
-        if (ret == ESP_ERR_WIFI_STATE) {
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Err State: %s", esp_err_to_name(ret));
             esp_wifi_scan_stop();
             throw idf::event::EventException(ESP_ERR_WIFI_STATE);
         }
         esp_wifi_scan_get_ap_records(&number, ap_info);
         esp_wifi_scan_get_ap_num(&ap_count);
+        ESP_LOGD(TAG, "Found size:%d", ap_count);
 
         for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
             std::string scanSsid = reinterpret_cast<char *>(ap_info[i].ssid);
             if (scanSsid == this->server_ssid) {
                 // connect it;
+                ESP_LOGD(TAG, "Find it");
                 return true;
             }
         }
