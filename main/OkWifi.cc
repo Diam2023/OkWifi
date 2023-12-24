@@ -46,7 +46,7 @@ namespace ok_wifi {
         ProvServerScanner::getInstance().deinit();
 
         // 获取蓝牙配网结果的实例指针
-        auto &res_ = BleProv::getInstance().getProvResult();
+        auto &res_ = WifiProv::getInstance().getProvResult();
 
         // 初始化 线程退出标记
         bool exitFlag = false;
@@ -75,30 +75,33 @@ namespace ok_wifi {
                 case OkWifiStartMode::ModeWaitBleProvAndServer:
                     ESP_LOGI(TAG, "ModeWaitBleProvAndServer");
                     // 蓝牙配网初始化
-                    BleProv::getInstance().init();
+                    WifiProv::getInstance().init();
+
+                    waitWifiProvAndServerMain:
 
                     // 阻塞1s监听蓝牙配网的状态
-                    if (BleProv::getInstance().wait(1)) {
+                    if (WifiProv::getInstance().wait(1)) {
                         // 有结果
                         switch (res_.getResult()) {
                             case ProvResultStatus::ResOk:
                                 // 蓝牙配网成功
                                 // 转换模式为 作为配网服务器 分发配网消息给客户端
                                 nowMode = OkWifiStartMode::ModeServer;
-
-                                // 停止蓝牙配网并释放蓝牙内存空间
-                                BleProv::getInstance().stop();
+                                // Release Wifi space
+                                WifiProv::getInstance().stop();
 
                                 // 进入配网服务器状态
                                 continue;
                             case ProvResultStatus::ResUnknown:
                                 // 未知状态/默认状态
-                                [[fallthrough]];
+                                break;
                             case ProvResultStatus::ResError:
                                 // 蓝牙配网超时
                                 // std::this_thread::sleep_for(1s);
                                 // 再次开始蓝牙配网
-                                [[fallthrough]];
+                                ESP_LOGI(TAG, "timeout");
+                                WifiProv::getInstance().stop();
+                                continue;
                             default:
                                 break;
                         }
@@ -107,32 +110,16 @@ namespace ok_wifi {
                     // 配网没有结果/等待响应超时
                     std::this_thread::sleep_for(1s);
 
-                    static wifi_prov_sta_state_t state;
-                    // 获取配网状态
-                    if (wifi_prov_mgr_get_wifi_state(&state) == ESP_OK) {
-                        // 如果连接成功就等待配网结果
-                        if (state == WIFI_PROV_STA_CONNECTED) {
-                            // 连接成功后检查配网成功后等待最多15s获取结果
-                            if (BleProv::getInstance().wait(15)) {
-                                // 获取到结果，之后回到最初再次判断结果
-                                continue;
-                            } else {
-                                // 超时没有结果就重启配网
-                                BleProv::getInstance().restart();
-                            }
-                        }
-                    }
-
                     // 尝试单次扫描检查是否有配网服务器
                     try {
-                        if (ProvServerScanner::getInstance().scanOnce(1s)) {
+                        if (ProvServerScanner::getInstance().scanOnce(3s)) {
 
                             // 扫描到目标服务器
                             ESP_LOGI(TAG, "Found ProvServer Name: %s",
                                      ProvServerScanner::getInstance().getServerSsid().c_str());
 
                             // 停止蓝牙配网
-                            BleProv::getInstance().stop();
+                            WifiProv::getInstance().stop();
                             // 改变状态到连接配网服务器模式
                             nowMode = OkWifiStartMode::ModeClient;
 
@@ -153,6 +140,7 @@ namespace ok_wifi {
                         }
                     }
                     std::this_thread::sleep_for(1s);
+                    goto waitWifiProvAndServerMain;
                     break;
                 case OkWifiStartMode::ModeServer:
                     ESP_LOGI(TAG, "ModeServer");
@@ -227,7 +215,7 @@ namespace ok_wifi {
                 ESP_LOGW(TAG, "Thread Going Down!");
                 std::this_thread::sleep_for(4s);
 
-                BleProv::getInstance().stop();
+                WifiProv::getInstance().stop();
                 ProvServer::getInstance().stop();
                 ProvClient::getInstance().deinit();
 
