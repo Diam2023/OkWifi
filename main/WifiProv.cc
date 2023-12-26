@@ -24,6 +24,12 @@ namespace ok_wifi {
     char g_ReceiveBuff[1000];
 
     static esp_err_t prov_set_handler(httpd_req_t *req) {
+        if (isStopping())
+        {
+            // Reject after first request
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Reject after first request");
+            return ESP_FAIL;
+        }
         bzero(g_ReceiveBuff, sizeof(g_ReceiveBuff));
 
         /* 如果内容长度大于缓冲区则截断 */
@@ -68,6 +74,10 @@ namespace ok_wifi {
         WifiProv::getInstance().stopAsync();
 
         return ESP_OK;
+    }
+
+    bool WifiProv::isStopping() {
+        return stopSignal; 
     }
 
     void WifiProv::init() {
