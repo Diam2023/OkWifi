@@ -24,7 +24,7 @@ namespace ok_wifi {
     char g_ReceiveBuff[1000];
 
     static esp_err_t prov_set_handler(httpd_req_t *req) {
-        if (isStopping())
+        if (WifiProv::getInstance().isStopping())
         {
             // Reject after first request
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Reject after first request");
@@ -153,7 +153,7 @@ namespace ok_wifi {
         stopSignal = true;
     }
 
-    WifiProv::WifiProv() : serviceName("WaterBoxProvDevice"), provTimeout(200s), provResult(""), netObj(nullptr) {
+    WifiProv::WifiProv() : serviceName("WaterBoxProvDevice"), provTimeout(9999s), provResult(""), netObj(nullptr) {
         provResult.setResult(ProvResultStatus::ResUnknown);
         stopSignal = false;
     }

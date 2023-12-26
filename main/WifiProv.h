@@ -122,6 +122,8 @@ namespace ok_wifi {
         void stop() noexcept;
 
         bool isStopping();
+
+        void stopAsync();
         /**
          * 重启配网
          */
