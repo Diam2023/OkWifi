@@ -120,8 +120,10 @@ namespace ok_wifi {
         void init();
 
         void stop() noexcept;
-        void stopAsync();
 
+        bool isStopping();
+
+        void stopAsync();
         /**
          * 重启配网
          */
