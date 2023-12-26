@@ -60,7 +60,7 @@ namespace ok_wifi {
         std::cout << "SSID: " << json["ssid"] << " PWD: " << json["pwd"] << std::endl;
         // TODO Auth token;
         WifiProv::getInstance().getProvResult().setSsid(json["ssid"]);
-        WifiProv::getInstance().getProvResult().setSsid(json["pwd"]);
+        WifiProv::getInstance().getProvResult().setPwd(json["pwd"]);
         WifiProv::getInstance().getProvResult().setResult(ProvResultStatus::ResOk);
         // successful!
         httpd_resp_sendstr(req, "successful!");
