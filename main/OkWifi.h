@@ -47,6 +47,12 @@ namespace ok_wifi {
          * 线程是否退出
          */
         volatile bool isThreadStopped;
+
+        /**
+         * Is Prov Server And Client Enable
+         */
+        bool enableBatchProv;
+
     public:
 
         [[nodiscard]] const std::string &getProvSsidRes() const;
@@ -60,6 +66,8 @@ namespace ok_wifi {
 
         /**
          * Start Scan, if error it will call OkWifi And Run it.
+         *
+         *! Do Not Use this function directly!!!
          */
         void run();
 
