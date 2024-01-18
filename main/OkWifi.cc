@@ -18,7 +18,8 @@ namespace ok_wifi {
 
     static const char *TAG = "OkWifi";
 
-    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize), stopSignal(false), isThreadStopped(true) {
+    OkWifi::OkWifi() : nowMode(OkWifiStartMode::ModeUnInitialize), stopSignal(false), isThreadStopped(true),
+                       enableBatchProv(true) {
     }
 
     void OkWifi::init() {
@@ -35,17 +36,22 @@ namespace ok_wifi {
     void OkWifi::run() {
         isThreadStopped = false;
 
-        // 初始化扫描配网服务器 打开自动扫描器
-        ProvServerScanner::getInstance().init();
-        std::this_thread::sleep_for(2s);
+        bool firstScanResult = false;
+        if (enableBatchProv) {
 
-        // 获取自动扫描结果
-        bool firstScanResult = ProvServerScanner::getInstance().checkFounded();
+            // 初始化扫描配网服务器 打开自动扫描器
+            ProvServerScanner::getInstance().init();
+            std::this_thread::sleep_for(2s);
 
-        // 停止自动扫描器
-        ProvServerScanner::getInstance().deinit();
 
-        // 获取蓝牙配网结果的实例指针
+            // 获取自动扫描结果
+            firstScanResult = ProvServerScanner::getInstance().checkFounded();
+
+            // 停止自动扫描器
+            ProvServerScanner::getInstance().deinit();
+
+        }
+        // 获取Wifi配网结果的实例Reference
         auto &res_ = WifiProv::getInstance().getProvResult();
 
         // 初始化 线程退出标记
@@ -64,11 +70,15 @@ namespace ok_wifi {
                     // 状态机起始状态
                     ESP_LOGI(TAG, "ModeUnInitialize");
                     // 通过第一次自动扫描的结果 选择启动模式
-                    if (firstScanResult) {
-                        // 直接连接配网服务器进行配网
-                        nowMode = OkWifiStartMode::ModeClient;
+                    if (enableBatchProv) {
+                        if (firstScanResult) {
+                            // 直接连接配网服务器进行配网
+                            nowMode = OkWifiStartMode::ModeClient;
+                        } else {
+                            // 接收蓝牙配网信息的同时扫描配网服务器
+                            nowMode = OkWifiStartMode::ModeWaitBleProvAndServer;
+                        }
                     } else {
-                        // 接收蓝牙配网信息的同时扫描配网服务器
                         nowMode = OkWifiStartMode::ModeWaitBleProvAndServer;
                     }
                     break;
@@ -77,16 +87,21 @@ namespace ok_wifi {
                     // 蓝牙配网初始化
                     WifiProv::getInstance().init();
 
-                    waitWifiProvAndServerMain:
+                waitWifiProvAndServerMain:
 
-                    // 阻塞1s监听蓝牙配网的状态
+                    // 阻塞1s监听WIFI配网的状态
                     if (WifiProv::getInstance().wait(1)) {
                         // 有结果
                         switch (res_.getResult()) {
                             case ProvResultStatus::ResOk:
                                 // 蓝牙配网成功
                                 // 转换模式为 作为配网服务器 分发配网消息给客户端
-                                nowMode = OkWifiStartMode::ModeServer;
+
+                                if (enableBatchProv) {
+                                    nowMode = OkWifiStartMode::ModeServer;
+                                } else {
+                                    nowMode = OkWifiStartMode::ModeCompleted;
+                                }
                                 // Release Wifi space
                                 WifiProv::getInstance().stop();
 
@@ -109,37 +124,38 @@ namespace ok_wifi {
 
                     // 配网没有结果/等待响应超时
                     std::this_thread::sleep_for(1s);
+                    if (enableBatchProv) {
+                        // 尝试单次扫描检查是否有配网服务器
+                        try {
+                            if (ProvServerScanner::getInstance().scanOnce(3s)) {
 
-                    // 尝试单次扫描检查是否有配网服务器
-                    try {
-                        if (ProvServerScanner::getInstance().scanOnce(3s)) {
+                                // 扫描到目标服务器
+                                ESP_LOGI(TAG, "Found ProvServer Name: %s",
+                                         ProvServerScanner::getInstance().getServerSsid().c_str());
 
-                            // 扫描到目标服务器
-                            ESP_LOGI(TAG, "Found ProvServer Name: %s",
-                                     ProvServerScanner::getInstance().getServerSsid().c_str());
+                                // 停止蓝牙配网
+                                WifiProv::getInstance().stop();
+                                // 改变状态到连接配网服务器模式
+                                nowMode = OkWifiStartMode::ModeClient;
 
-                            // 停止蓝牙配网
-                            WifiProv::getInstance().stop();
-                            // 改变状态到连接配网服务器模式
-                            nowMode = OkWifiStartMode::ModeClient;
-
-                            continue;
+                                continue;
+                            }
+                        } catch (idf::event::EventException &exception) {
+                            // 检查到在蓝牙配网过程中扫描WIFI SSID出现冲突的错误
+                            if (exception.error == ESP_ERR_WIFI_STATE) {
+                                // 停止SSID扫描功能
+                                ESP_LOGW(TAG, "Acc Stop Scan for 5s!");
+                                // 重启WIFI连接
+                                esp_wifi_scan_stop();
+                                esp_wifi_disconnect();
+                                esp_wifi_connect();
+                                // Stop Scan When Ble Received Prov Message
+                                // 等待5s 等待WIFI响应
+                                std::this_thread::sleep_for(5s);
+                            }
                         }
-                    } catch (idf::event::EventException &exception) {
-                        // 检查到在蓝牙配网过程中扫描WIFI SSID出现冲突的错误
-                        if (exception.error == ESP_ERR_WIFI_STATE) {
-                            // 停止SSID扫描功能
-                            ESP_LOGW(TAG, "Acc Stop Scan for 5s!");
-                            // 重启WIFI连接
-                            esp_wifi_scan_stop();
-                            esp_wifi_disconnect();
-                            esp_wifi_connect();
-                            // Stop Scan When Ble Received Prov Message
-                            // 等待5s 等待WIFI响应
-                            std::this_thread::sleep_for(5s);
-                        }
+                        std::this_thread::sleep_for(1s);
                     }
-                    std::this_thread::sleep_for(1s);
                     goto waitWifiProvAndServerMain;
                     break;
                 case OkWifiStartMode::ModeServer:
