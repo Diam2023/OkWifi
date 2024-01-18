@@ -55,6 +55,14 @@ namespace ok_wifi {
 
     public:
 
+        bool getEnableBatchProv() {
+            return enableBatchProv;
+        };
+
+        void setEnableBatchProv(bool enable_) {
+            this->enableBatchProv = enable_;
+        };
+
         [[nodiscard]] const std::string &getProvSsidRes() const;
 
         [[nodiscard]] const std::string &getProvPwdRes() const;
