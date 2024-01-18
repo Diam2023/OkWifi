@@ -79,8 +79,8 @@ namespace ok_wifi {
          * @param pwd_ pwd of wifi from prov
          */
         explicit ProvResult(std::string message_, std::string ssid_ = "",
-                   std::string pwd_ = "") : resultMessage(std::move(message_)), ssid(std::move(ssid_)),
-                                            pwd(std::move(pwd_)), result(ProvResultStatus::ResUnknown) {};
+                            std::string pwd_ = "") : resultMessage(std::move(message_)), ssid(std::move(ssid_)),
+                                                     pwd(std::move(pwd_)), result(ProvResultStatus::ResUnknown) {};
     };
 
 
@@ -107,7 +107,7 @@ namespace ok_wifi {
          */
         ProvResult provResult;
 
-        esp_netif_obj* netObj;
+        esp_netif_obj *netObj;
 
         httpd_uri uri;
         httpd_handle_t handler;
@@ -147,6 +147,15 @@ namespace ok_wifi {
         static WifiProv &getInstance() {
             static WifiProv prov;
             return prov;
+        }
+
+
+        void setServiceName(const std::string &serviceName_) {
+            this->serviceName = serviceName_;
+        };
+
+        std::string &getServiceName() {
+            return serviceName;
         }
     };
 
