@@ -153,7 +153,7 @@ namespace ok_wifi {
         stopSignal = true;
     }
 
-    WifiProv::WifiProv() : serviceName("WaterBoxProvDevice"), provTimeout(9999s), provResult(""), netObj(nullptr) {
+    WifiProv::WifiProv() : serviceName("OkWifiDevice"), provTimeout(9999s), provResult(""), netObj(nullptr) {
         provResult.setResult(ProvResultStatus::ResUnknown);
         stopSignal = false;
     }
