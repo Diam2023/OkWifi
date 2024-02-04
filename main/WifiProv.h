@@ -5,6 +5,7 @@
 #ifndef OKWIFI_WIFIPROV_H
 #define OKWIFI_WIFIPROV_H
 
+#include <string>
 #include <thread>
 
 #include <esp_wifi.h>
